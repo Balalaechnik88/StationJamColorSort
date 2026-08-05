@@ -4,6 +4,7 @@ namespace StationJam.Core
     {
         NotInitialized,
         Playing,
+        Swapping,
         Completed
     }
 }

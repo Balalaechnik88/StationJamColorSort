@@ -6,40 +6,58 @@ namespace StationJam.Core
 {
     public class SwapEngine : MonoBehaviour
     {
-        public enum EngineState
-        {
-            WaitInput,
-            Swapping
-        }
-
         [Header("Scene References")]
-        [SerializeField] private TransitSlot _transitSlot;
+        [SerializeField]
+        private TransitSlot _transitSlot;
+
+        [SerializeField]
+        private LevelFlowDriver _levelFlowDriver;
 
         [Header("State")]
-        [SerializeField] private Passenger _passengerInBuffer;
-        [SerializeField] private EngineState _currentState = EngineState.WaitInput;
+        [SerializeField]
+        private Passenger _passengerInBuffer;
 
         [Header("Animation Settings")]
-        [SerializeField] private float _jumpPower = 2f;
-        [SerializeField] private float _jumpDuration = 0.5f;
+        [SerializeField]
+        private float _jumpPower = 2f;
 
-        public void InitializeBuffer(Passenger initialPassenger)
+        [SerializeField]
+        private float _jumpDuration = 0.5f;
+
+        public void InitializeBuffer(
+            Passenger initialPassenger)
         {
             _passengerInBuffer = initialPassenger;
-            if (_passengerInBuffer != null)
+
+            if (_passengerInBuffer != null &&
+                _transitSlot != null)
             {
-                _passengerInBuffer.SeatPosition = _transitSlot.GetPosition().position;
+                _passengerInBuffer.SeatPosition =
+                    _transitSlot.GetPosition().position;
             }
         }
 
-        public void ProcessSwap(Passenger clickedPassenger)
+        public void ProcessSwap(
+            Passenger clickedPassenger)
         {
-            if (_currentState != EngineState.WaitInput || clickedPassenger == _passengerInBuffer)
+            if (clickedPassenger == null ||
+                clickedPassenger == _passengerInBuffer)
             {
                 return;
             }
 
-            _currentState = EngineState.Swapping;
+            if (_levelFlowDriver == null)
+            {
+                Debug.LogError(
+                    "[SwapEngine] LevelFlowDriver не назначен.");
+
+                return;
+            }
+
+            if (!_levelFlowDriver.TryStartSwap())
+            {
+                return;
+            }
 
             if (_passengerInBuffer == null)
             {
@@ -47,75 +65,176 @@ namespace StationJam.Core
             }
             else
             {
-                SwapPassengers(clickedPassenger, _passengerInBuffer);
+                SwapPassengers(
+                    clickedPassenger,
+                    _passengerInBuffer);
             }
         }
 
-        private void MoveToBuffer(Passenger trainPassenger)
+        private void MoveToBuffer(
+            Passenger trainPassenger)
         {
-            TrainWagon sourceWagon = trainPassenger.CurrentWagon;
+            TrainWagon sourceWagon =
+                trainPassenger.CurrentWagon;
 
-            trainPassenger.SeatPosition = trainPassenger.transform.position;
-            Vector3 targetBufferPos = _transitSlot.GetPosition().position;
+            Vector3 targetBufferPosition =
+                _transitSlot.GetPosition().position;
 
-            if (sourceWagon != null)
+            trainPassenger.SeatPosition =
+                trainPassenger.transform.position;
+
+            if (sourceWagon != null &&
+                !sourceWagon.TryRemovePassenger(
+                    trainPassenger))
             {
-                sourceWagon.TryRemovePassenger(trainPassenger);
+                Debug.LogError(
+                    "[SwapEngine] Не удалось удалить пассажира " +
+                    "из исходного вагона.");
+
+                _levelFlowDriver.FinishSwap();
+                return;
             }
 
             _passengerInBuffer = trainPassenger;
 
             trainPassenger.PlayJump();
-            trainPassenger.transform.DOJump(targetBufferPos, _jumpPower, 1, _jumpDuration)
-                .SetLink(trainPassenger.gameObject)
-                .OnComplete(() =>
-                {
-                    // ФИКС: Принудительно впечатываем стикмена в пол
-                    trainPassenger.transform.position = targetBufferPos;
 
-                    trainPassenger.PlayIdle();
-                    _currentState = EngineState.WaitInput;
-                });
+            Tween moveTween = trainPassenger.transform
+                .DOJump(
+                    targetBufferPosition,
+                    _jumpPower,
+                    1,
+                    _jumpDuration)
+                .SetLink(trainPassenger.gameObject);
+
+            moveTween.OnComplete(() =>
+            {
+                trainPassenger.transform.position =
+                    targetBufferPosition;
+
+                trainPassenger.PlayIdle();
+
+                _levelFlowDriver.FinishSwap();
+            });
+
+            moveTween.OnKill(() =>
+            {
+                _levelFlowDriver.FinishSwap();
+            });
         }
 
-        private void SwapPassengers(Passenger trainPassenger, Passenger bufferPassenger)
+        private void SwapPassengers(
+            Passenger trainPassenger,
+            Passenger bufferPassenger)
         {
-            TrainWagon targetWagon = trainPassenger.CurrentWagon;
+            TrainWagon targetWagon =
+                trainPassenger.CurrentWagon;
 
-            trainPassenger.SeatPosition = trainPassenger.transform.position;
-            Vector3 targetTrainSeat = trainPassenger.SeatPosition;
-            Vector3 targetBufferPos = _transitSlot.GetPosition().position;
-
-            if (targetWagon != null)
+            if (targetWagon == null)
             {
-                targetWagon.TryRemovePassenger(trainPassenger);
-                targetWagon.TryAddPassenger(bufferPassenger);
+                Debug.LogError(
+                    "[SwapEngine] Выбранный пассажир " +
+                    "не находится в вагоне.");
+
+                _levelFlowDriver.FinishSwap();
+                return;
             }
 
-            Sequence swapSequence = DOTween.Sequence();
+            Vector3 targetTrainSeat =
+                trainPassenger.transform.position;
+
+            Vector3 targetBufferPosition =
+                _transitSlot.GetPosition().position;
+
+            trainPassenger.SeatPosition =
+                targetTrainSeat;
+
+            bool removedFromWagon =
+                targetWagon.TryRemovePassenger(
+                    trainPassenger);
+
+            if (!removedFromWagon)
+            {
+                Debug.LogError(
+                    "[SwapEngine] Не удалось удалить выбранного " +
+                    "пассажира из вагона.");
+
+                _levelFlowDriver.FinishSwap();
+                return;
+            }
+
+            bool addedToWagon =
+                targetWagon.TryAddPassenger(
+                    bufferPassenger);
+
+            if (!addedToWagon)
+            {
+                Debug.LogError(
+                    "[SwapEngine] Не удалось добавить пассажира " +
+                    "из буфера в вагон.");
+
+                // Возвращаем исходного пассажира обратно,
+                // чтобы состояние вагона не оказалось сломанным.
+                targetWagon.TryAddPassenger(
+                    trainPassenger);
+
+                _levelFlowDriver.FinishSwap();
+                return;
+            }
 
             trainPassenger.PlayJump();
             bufferPassenger.PlayJump();
 
-            swapSequence.Join(trainPassenger.transform.DOJump(targetBufferPos, _jumpPower, 1, _jumpDuration).SetLink(trainPassenger.gameObject));
-            swapSequence.Join(bufferPassenger.transform.DOJump(targetTrainSeat, _jumpPower, 1, _jumpDuration).SetLink(bufferPassenger.gameObject));
+            Sequence swapSequence =
+                DOTween.Sequence();
+
+            swapSequence.Join(
+                trainPassenger.transform
+                    .DOJump(
+                        targetBufferPosition,
+                        _jumpPower,
+                        1,
+                        _jumpDuration)
+                    .SetLink(trainPassenger.gameObject));
+
+            swapSequence.Join(
+                bufferPassenger.transform
+                    .DOJump(
+                        targetTrainSeat,
+                        _jumpPower,
+                        1,
+                        _jumpDuration)
+                    .SetLink(bufferPassenger.gameObject));
 
             swapSequence.OnComplete(() =>
             {
-                // ФИКС: Принудительно впечатываем обоих стикменов в их финальные точки
-                trainPassenger.transform.position = targetBufferPos;
-                bufferPassenger.transform.position = targetTrainSeat;
+                trainPassenger.transform.position =
+                    targetBufferPosition;
+
+                bufferPassenger.transform.position =
+                    targetTrainSeat;
 
                 trainPassenger.PlayIdle();
                 bufferPassenger.PlayIdle();
 
-                _passengerInBuffer = trainPassenger;
-                _currentState = EngineState.WaitInput;
+                _passengerInBuffer =
+                    trainPassenger;
 
-                if (targetWagon != null)
-                {
-                    targetWagon.CheckCompletion();
-                }
+                /*
+                 * Сначала завершаем обмен и возвращаем
+                 * состояние Playing.
+                 *
+                 * Затем проверяем вагон: эта проверка может
+                 * запустить его отправление и победу.
+                 */
+                _levelFlowDriver.FinishSwap();
+
+                targetWagon.CheckCompletion();
+            });
+
+            swapSequence.OnKill(() =>
+            {
+                _levelFlowDriver.FinishSwap();
             });
         }
     }

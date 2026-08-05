@@ -40,7 +40,7 @@ namespace StationJam.Core
             if (wagons == null)
             {
                 Debug.LogError(
-                    "[LevelFlowDriver] Получен пустой список вагонов.");
+                    "[LevelFlowDriver] Получен null вместо списка вагонов.");
 
                 return;
             }
@@ -70,6 +70,29 @@ namespace StationJam.Core
             Debug.Log(
                 $"[LevelFlowDriver] Уровень запущен. " +
                 $"Вагонов до победы: {_wagonsInLevel.Count}");
+        }
+
+        public bool TryStartSwap()
+        {
+            if (!_isInitialized ||
+                _currentState != LevelState.Playing)
+            {
+                return false;
+            }
+
+            SetState(LevelState.Swapping);
+            return true;
+        }
+
+        public void FinishSwap()
+        {
+            if (!_isInitialized ||
+                _currentState != LevelState.Swapping)
+            {
+                return;
+            }
+
+            SetState(LevelState.Playing);
         }
 
         private void OnEnable()
@@ -114,7 +137,7 @@ namespace StationJam.Core
             TrainWagon wagon)
         {
             if (!_isInitialized ||
-                _currentState != LevelState.Playing)
+                _currentState == LevelState.Completed)
             {
                 return;
             }

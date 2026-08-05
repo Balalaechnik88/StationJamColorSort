@@ -1730,8 +1730,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _transitSlot: {fileID: 91172911}
+  _levelFlowDriver: {fileID: 1454318366}
   _passengerInBuffer: {fileID: 0}
-  _currentState: 0
   _jumpPower: 2
   _jumpDuration: 0.5
 --- !u!4 &1454318365
