@@ -20,7 +20,8 @@ namespace StationJam.Core
         [Header("Scene References")]
         [SerializeField] private TransitSlot _transitSlot;
         [SerializeField] private List<TrainWagon> _sceneWagons;
-        [SerializeField] private SwapEngine _swapEngine; // Добавлена ссылка на ядро обмена
+        [SerializeField] private SwapEngine _swapEngine;
+        [SerializeField] private LevelFlowDriver _levelFlowDriver;
 
         [Header("Prefabs & Visuals")]
         [SerializeField] private Passenger _passengerPrefab;
@@ -28,69 +29,240 @@ namespace StationJam.Core
 
         private void Start()
         {
-            if (_levelData != null)
-            {
-                BuildLevel();
-            }
-            else
-            {
-                Debug.LogError("[LevelBuilder] Файл LevelData не назначен!");
-            }
+            BuildLevel();
         }
 
         private void BuildLevel()
         {
-            // 1. Спавним пассажира на перроне
-            Passenger initialBufferPass = SpawnPassenger(_levelData.InitialBufferColor, _transitSlot.GetPosition().position, null);
-
-            // ПЕРЕДАЕМ ПАССАЖИРА В ДВИЖОК
-            if (_swapEngine != null)
+            if (!ValidateReferences())
             {
-                _swapEngine.InitializeBuffer(initialBufferPass);
+                return;
             }
 
-            // 2. Настраиваем и заполняем вагоны
+            if (_levelData.Wagons.Count > _sceneWagons.Count)
+            {
+                Debug.LogError(
+                    $"[LevelBuilder] В LevelData указано " +
+                    $"{_levelData.Wagons.Count} вагонов, " +
+                    $"но на сцене доступно только {_sceneWagons.Count}.");
+
+                return;
+            }
+
+            SetActiveWagonsCount(_levelData.Wagons.Count);
+
+            Passenger initialBufferPassenger = SpawnPassenger(
+                _levelData.InitialBufferColor,
+                _transitSlot.GetPosition().position,
+                null);
+
+            _swapEngine.InitializeBuffer(initialBufferPassenger);
+
+            List<TrainWagon> wagonsInLevel =
+                new List<TrainWagon>();
+
             for (int i = 0; i < _levelData.Wagons.Count; i++)
             {
-                if (i >= _sceneWagons.Count) break;
-
                 WagonSetup setup = _levelData.Wagons[i];
                 TrainWagon wagon = _sceneWagons[i];
 
-                wagon.InitializeData(setup.TargetColor, setup.Capacity);
-
-                for (int j = 0; j < setup.StartingPassengers.Count; j++)
+                if (setup == null)
                 {
-                    if (j >= wagon.SeatPoints.Length) break;
+                    Debug.LogError(
+                        $"[LevelBuilder] Настройка вагона {i} отсутствует.");
 
-                    Vector3 spawnPos = wagon.SeatPoints[j].position;
-                    Passenger newPassenger = SpawnPassenger(setup.StartingPassengers[j], spawnPos, wagon);
-                    wagon.TryAddPassenger(newPassenger);
+                    continue;
+                }
+
+                if (wagon == null)
+                {
+                    Debug.LogError(
+                        $"[LevelBuilder] Вагон сцены {i} не назначен.");
+
+                    continue;
+                }
+
+                if (!ValidateWagonSetup(setup, wagon, i))
+                {
+                    continue;
+                }
+
+                wagon.InitializeData(
+                    setup.TargetColor,
+                    setup.Capacity);
+
+                for (int passengerIndex = 0;
+                     passengerIndex < setup.StartingPassengers.Count;
+                     passengerIndex++)
+                {
+                    Vector3 spawnPosition =
+                        wagon.SeatPoints[passengerIndex].position;
+
+                    Passenger passenger = SpawnPassenger(
+                        setup.StartingPassengers[passengerIndex],
+                        spawnPosition,
+                        wagon);
+
+                    if (!wagon.TryAddPassenger(passenger))
+                    {
+                        Debug.LogError(
+                            $"[LevelBuilder] Не удалось добавить " +
+                            $"пассажира {passengerIndex} " +
+                            $"в вагон {i}.");
+                    }
+                }
+
+                wagonsInLevel.Add(wagon);
+            }
+
+            _levelFlowDriver.Initialize(wagonsInLevel);
+        }
+
+        private bool ValidateReferences()
+        {
+            if (_levelData == null)
+            {
+                Debug.LogError(
+                    "[LevelBuilder] LevelData не назначен.");
+
+                return false;
+            }
+
+            if (_transitSlot == null)
+            {
+                Debug.LogError(
+                    "[LevelBuilder] TransitSlot не назначен.");
+
+                return false;
+            }
+
+            if (_swapEngine == null)
+            {
+                Debug.LogError(
+                    "[LevelBuilder] SwapEngine не назначен.");
+
+                return false;
+            }
+
+            if (_levelFlowDriver == null)
+            {
+                Debug.LogError(
+                    "[LevelBuilder] LevelFlowDriver не назначен.");
+
+                return false;
+            }
+
+            if (_passengerPrefab == null)
+            {
+                Debug.LogError(
+                    "[LevelBuilder] Префаб пассажира не назначен.");
+
+                return false;
+            }
+
+            if (_sceneWagons == null || _sceneWagons.Count == 0)
+            {
+                Debug.LogError(
+                    "[LevelBuilder] Список вагонов сцены пуст.");
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool ValidateWagonSetup(
+            WagonSetup setup,
+            TrainWagon wagon,
+            int wagonIndex)
+        {
+            if (setup.Capacity <= 0)
+            {
+                Debug.LogError(
+                    $"[LevelBuilder] У вагона {wagonIndex} " +
+                    "вместимость должна быть больше нуля.");
+
+                return false;
+            }
+
+            if (wagon.SeatPoints == null)
+            {
+                Debug.LogError(
+                    $"[LevelBuilder] У вагона {wagonIndex} " +
+                    "не назначены точки мест.");
+
+                return false;
+            }
+
+            if (setup.Capacity > wagon.SeatPoints.Length)
+            {
+                Debug.LogError(
+                    $"[LevelBuilder] Вместимость вагона {wagonIndex} " +
+                    $"равна {setup.Capacity}, но точек мест только " +
+                    $"{wagon.SeatPoints.Length}.");
+
+                return false;
+            }
+
+            if (setup.StartingPassengers.Count > setup.Capacity)
+            {
+                Debug.LogError(
+                    $"[LevelBuilder] В вагоне {wagonIndex} " +
+                    "начальных пассажиров больше, чем мест.");
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private void SetActiveWagonsCount(int activeWagonsCount)
+        {
+            for (int i = 0; i < _sceneWagons.Count; i++)
+            {
+                TrainWagon wagon = _sceneWagons[i];
+
+                if (wagon != null)
+                {
+                    wagon.gameObject.SetActive(i < activeWagonsCount);
                 }
             }
         }
 
-        private Passenger SpawnPassenger(ColorType color, Vector3 position, TrainWagon wagon)
+        private Passenger SpawnPassenger(
+            ColorType color,
+            Vector3 position,
+            TrainWagon wagon)
         {
-            Passenger newPass = Instantiate(_passengerPrefab, position, Quaternion.identity);
+            Passenger newPassenger = Instantiate(
+                _passengerPrefab,
+                position,
+                Quaternion.identity);
 
             if (wagon != null)
             {
-                newPass.transform.SetParent(wagon.transform);
+                newPassenger.transform.SetParent(wagon.transform);
             }
 
-            Material mat = GetMaterialByColor(color);
-            newPass.SetData(color, mat);
+            Material material = GetMaterialByColor(color);
+            newPassenger.SetData(color, material);
 
-            return newPass;
+            return newPassenger;
         }
 
         private Material GetMaterialByColor(ColorType color)
         {
-            foreach (var mapping in _materialsMap)
+            foreach (ColorMaterialMapping mapping in _materialsMap)
             {
-                if (mapping.Color == color) return mapping.Material;
+                if (mapping.Color == color)
+                {
+                    return mapping.Material;
+                }
             }
+
+            Debug.LogWarning(
+                $"[LevelBuilder] Материал для цвета {color} не найден.");
+
             return null;
         }
     }

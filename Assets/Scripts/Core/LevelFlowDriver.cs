@@ -7,42 +7,87 @@ namespace StationJam.Core
 {
     public class LevelFlowDriver : MonoBehaviour
     {
-        [Header("Level Settings")]
-        [SerializeField] private List<TrainWagon> _wagonsInLevel = new List<TrainWagon>();
-
-        // Публикуем событие для UI и других систем
         public event Action OnLevelCompleted;
 
-        private int _departedWagonsCount = 0;
-        private int _totalWagons;
+        private readonly List<TrainWagon> _wagonsInLevel =
+            new List<TrainWagon>();
 
-        private void Start()
+        private int _departedWagonsCount;
+        private bool _isInitialized;
+        private bool _isLevelCompleted;
+
+        public void Initialize(IReadOnlyList<TrainWagon> wagons)
         {
-            _totalWagons = _wagonsInLevel.Count;
-            Debug.Log($"[LevelFlowDriver] Уровень запущен. Вагонов до победы: {_totalWagons}");
+            UnsubscribeFromWagons();
 
-            if (_totalWagons == 0)
+            _wagonsInLevel.Clear();
+            _departedWagonsCount = 0;
+            _isInitialized = false;
+            _isLevelCompleted = false;
+
+            if (wagons == null)
             {
-                Debug.LogWarning("[LevelFlowDriver] ВНИМАНИЕ: Список _wagonsInLevel пуст! Добавь вагоны в Инспекторе.");
+                Debug.LogError(
+                    "[LevelFlowDriver] Получен пустой список вагонов.");
+
+                return;
             }
+
+            foreach (TrainWagon wagon in wagons)
+            {
+                if (wagon != null)
+                {
+                    _wagonsInLevel.Add(wagon);
+                }
+            }
+
+            if (_wagonsInLevel.Count == 0)
+            {
+                Debug.LogWarning(
+                    "[LevelFlowDriver] На уровне нет активных вагонов.");
+
+                return;
+            }
+
+            SubscribeToWagons();
+            _isInitialized = true;
+
+            Debug.Log(
+                $"[LevelFlowDriver] Уровень инициализирован. " +
+                $"Вагонов до победы: {_wagonsInLevel.Count}");
         }
 
         private void OnEnable()
         {
-            // Симметричная подписка на события отъезда
-            foreach (var wagon in _wagonsInLevel)
+            if (_isInitialized)
             {
-                if (wagon != null)
-                {
-                    wagon.OnWagonDeparted += HandleWagonDeparted;
-                }
+                SubscribeToWagons();
             }
         }
 
         private void OnDisable()
         {
-            // Симметричная отписка
-            foreach (var wagon in _wagonsInLevel)
+            UnsubscribeFromWagons();
+        }
+
+        private void SubscribeToWagons()
+        {
+            foreach (TrainWagon wagon in _wagonsInLevel)
+            {
+                if (wagon == null)
+                {
+                    continue;
+                }
+
+                // Сначала отписываемся, чтобы исключить двойную подписку.
+                wagon.OnWagonDeparted -= HandleWagonDeparted;
+                wagon.OnWagonDeparted += HandleWagonDeparted;
+            }
+        }
+
+        private void UnsubscribeFromWagons()
+        {
+            foreach (TrainWagon wagon in _wagonsInLevel)
             {
                 if (wagon != null)
                 {
@@ -53,10 +98,21 @@ namespace StationJam.Core
 
         private void HandleWagonDeparted(TrainWagon wagon)
         {
-            _departedWagonsCount++;
-            Debug.Log($"[LevelFlowDriver] Вагон уехал. Осталось: {_totalWagons - _departedWagonsCount}");
+            if (!_isInitialized || _isLevelCompleted)
+            {
+                return;
+            }
 
-            if (_departedWagonsCount >= _totalWagons)
+            _departedWagonsCount++;
+
+            int remainingWagons =
+                _wagonsInLevel.Count - _departedWagonsCount;
+
+            Debug.Log(
+                $"[LevelFlowDriver] Вагон уехал. " +
+                $"Осталось: {remainingWagons}");
+
+            if (_departedWagonsCount >= _wagonsInLevel.Count)
             {
                 CompleteLevel();
             }
@@ -64,7 +120,17 @@ namespace StationJam.Core
 
         private void CompleteLevel()
         {
-            Debug.Log("[LevelFlowDriver] Уровень пройден! Все вагоны отправлены.");
+            if (_isLevelCompleted)
+            {
+                return;
+            }
+
+            _isLevelCompleted = true;
+
+            Debug.Log(
+                "[LevelFlowDriver] Уровень пройден. " +
+                "Все вагоны отправлены.");
+
             OnLevelCompleted?.Invoke();
         }
     }
