@@ -8,22 +8,34 @@ namespace StationJam.Core
     public class LevelFlowDriver : MonoBehaviour
     {
         public event Action OnLevelCompleted;
+        public event Action<LevelState> OnStateChanged;
+
+        [Header("State")]
+        [SerializeField]
+        private LevelState _currentState =
+            LevelState.NotInitialized;
 
         private readonly List<TrainWagon> _wagonsInLevel =
             new List<TrainWagon>();
 
         private int _departedWagonsCount;
         private bool _isInitialized;
-        private bool _isLevelCompleted;
 
-        public void Initialize(IReadOnlyList<TrainWagon> wagons)
+        public LevelState CurrentState => _currentState;
+
+        public bool CanAcceptInput =>
+            _currentState == LevelState.Playing;
+
+        public void Initialize(
+            IReadOnlyList<TrainWagon> wagons)
         {
             UnsubscribeFromWagons();
 
             _wagonsInLevel.Clear();
             _departedWagonsCount = 0;
             _isInitialized = false;
-            _isLevelCompleted = false;
+
+            SetState(LevelState.NotInitialized);
 
             if (wagons == null)
             {
@@ -50,10 +62,13 @@ namespace StationJam.Core
             }
 
             SubscribeToWagons();
+
             _isInitialized = true;
 
+            SetState(LevelState.Playing);
+
             Debug.Log(
-                $"[LevelFlowDriver] Уровень инициализирован. " +
+                $"[LevelFlowDriver] Уровень запущен. " +
                 $"Вагонов до победы: {_wagonsInLevel.Count}");
         }
 
@@ -79,7 +94,6 @@ namespace StationJam.Core
                     continue;
                 }
 
-                // Сначала отписываемся, чтобы исключить двойную подписку.
                 wagon.OnWagonDeparted -= HandleWagonDeparted;
                 wagon.OnWagonDeparted += HandleWagonDeparted;
             }
@@ -96,9 +110,11 @@ namespace StationJam.Core
             }
         }
 
-        private void HandleWagonDeparted(TrainWagon wagon)
+        private void HandleWagonDeparted(
+            TrainWagon wagon)
         {
-            if (!_isInitialized || _isLevelCompleted)
+            if (!_isInitialized ||
+                _currentState != LevelState.Playing)
             {
                 return;
             }
@@ -106,13 +122,15 @@ namespace StationJam.Core
             _departedWagonsCount++;
 
             int remainingWagons =
-                _wagonsInLevel.Count - _departedWagonsCount;
+                _wagonsInLevel.Count -
+                _departedWagonsCount;
 
             Debug.Log(
                 $"[LevelFlowDriver] Вагон уехал. " +
                 $"Осталось: {remainingWagons}");
 
-            if (_departedWagonsCount >= _wagonsInLevel.Count)
+            if (_departedWagonsCount >=
+                _wagonsInLevel.Count)
             {
                 CompleteLevel();
             }
@@ -120,18 +138,34 @@ namespace StationJam.Core
 
         private void CompleteLevel()
         {
-            if (_isLevelCompleted)
+            if (_currentState == LevelState.Completed)
             {
                 return;
             }
 
-            _isLevelCompleted = true;
+            SetState(LevelState.Completed);
 
             Debug.Log(
                 "[LevelFlowDriver] Уровень пройден. " +
                 "Все вагоны отправлены.");
 
             OnLevelCompleted?.Invoke();
+        }
+
+        private void SetState(LevelState newState)
+        {
+            if (_currentState == newState)
+            {
+                return;
+            }
+
+            _currentState = newState;
+
+            Debug.Log(
+                $"[LevelFlowDriver] Состояние уровня: " +
+                $"{_currentState}");
+
+            OnStateChanged?.Invoke(_currentState);
         }
     }
 }

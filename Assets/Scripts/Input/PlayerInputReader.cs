@@ -8,21 +8,40 @@ namespace StationJam.InputSystem
     public class PlayerInputReader : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private SwapEngine _swapEngine;
+        [SerializeField]
+        private SwapEngine _swapEngine;
+
+        [SerializeField]
+        private LevelFlowDriver _levelFlowDriver;
 
         [Header("Settings")]
-        [SerializeField] private LayerMask _passengerLayer;
-        [SerializeField] private float _rayDistance = 100f;
+        [SerializeField]
+        private LayerMask _passengerLayer;
+
+        [SerializeField]
+        private float _rayDistance = 100f;
 
         private Camera _mainCamera;
 
         private void Awake()
         {
             _mainCamera = Camera.main;
+
+            if (_mainCamera == null)
+            {
+                Debug.LogError(
+                    "[PlayerInputReader] Main Camera не найдена.");
+            }
         }
 
         private void Update()
         {
+            if (_levelFlowDriver == null ||
+                !_levelFlowDriver.CanAcceptInput)
+            {
+                return;
+            }
+
             if (Input.GetMouseButtonDown(0))
             {
                 ProcessClick();
@@ -31,22 +50,36 @@ namespace StationJam.InputSystem
 
         private void ProcessClick()
         {
-            // 1. Защита от пробития UI: игнорируем клик, если курсор над элементом интерфейса
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            if (_mainCamera == null ||
+                _swapEngine == null)
             {
                 return;
             }
 
-            Ray ray = _mainCamera.ScreenPointToRay(Input.mousePosition);
-
-            // 2. Пускаем луч ограниченной длины и ТОЛЬКО по выбранному слою
-            if (Physics.Raycast(ray, out RaycastHit hit, _rayDistance, _passengerLayer))
+            if (EventSystem.current != null &&
+                EventSystem.current.IsPointerOverGameObject())
             {
-                // 3. Безопасное извлечение компонента (TryGetComponent быстрее и чище)
-                if (hit.collider.TryGetComponent(out Passenger clickedPassenger))
-                {
-                    _swapEngine.ProcessSwap(clickedPassenger);
-                }
+                return;
+            }
+
+            Ray ray = _mainCamera.ScreenPointToRay(
+                Input.mousePosition);
+
+            bool passengerHit = Physics.Raycast(
+                ray,
+                out RaycastHit hit,
+                _rayDistance,
+                _passengerLayer);
+
+            if (!passengerHit)
+            {
+                return;
+            }
+
+            if (hit.collider.TryGetComponent(
+                    out Passenger clickedPassenger))
+            {
+                _swapEngine.ProcessSwap(clickedPassenger);
             }
         }
     }

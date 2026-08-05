@@ -1761,6 +1761,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21aeb2e7a23fc85439545b03df0c19e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _currentState: 0
 --- !u!114 &1454318367
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2350,6 +2351,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _swapEngine: {fileID: 1454318364}
+  _levelFlowDriver: {fileID: 1454318366}
   _passengerLayer:
     serializedVersion: 2
     m_Bits: 64
