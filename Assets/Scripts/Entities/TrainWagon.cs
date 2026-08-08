@@ -7,68 +7,144 @@ namespace StationJam.Entities
 {
     public class TrainWagon : MonoBehaviour
     {
-        public enum DepartDirection { Left, Right, Forward, Backward }
+        public enum DepartDirection
+        {
+            Left,
+            Right,
+            Forward,
+            Backward
+        }
 
         [Header("Spawning Setup")]
-        [SerializeField] private Transform[] _seatPoints;
+        [SerializeField]
+        private Transform[] _seatPoints;
 
         [Header("Wagon Settings")]
-        [SerializeField] private ColorType _targetColor;
-        [SerializeField] private int _capacity = 4;
-        [SerializeField] private DepartDirection _departureDirection = DepartDirection.Right;
+        [SerializeField]
+        private ColorType _targetColor;
+
+        [SerializeField]
+        private int _capacity = 4;
+
+        [SerializeField]
+        private DepartDirection _departureDirection =
+            DepartDirection.Right;
 
         [Header("State (Read Only)")]
-        [SerializeField] private List<Passenger> _currentPassengers = new List<Passenger>();
+        [SerializeField]
+        private List<Passenger> _currentPassengers =
+            new List<Passenger>();
 
         public event Action<TrainWagon> OnWagonDeparted;
 
-        private bool _hasDeparted = false;
+        private bool _hasDeparted;
+
+        private bool _initialTransformCached;
+        private Vector3 _initialLocalPosition;
+        private Quaternion _initialLocalRotation;
 
         public Transform[] SeatPoints => _seatPoints;
         public ColorType TargetColor => _targetColor;
         public int Capacity => _capacity;
-        public bool IsFull => _currentPassengers.Count >= _capacity;
 
-        public void InitializeData(ColorType targetColor, int capacity)
+        public bool IsFull =>
+            _currentPassengers.Count >= _capacity;
+
+        private void Awake()
         {
-            _targetColor = targetColor;
-            _capacity = capacity;
-            _currentPassengers.Clear();
+            CacheInitialTransform();
         }
 
-        public bool TryAddPassenger(Passenger passenger)
+        public void InitializeData(
+            ColorType targetColor,
+            int capacity)
         {
-            if (_hasDeparted || IsFull || _currentPassengers.Contains(passenger) || passenger == null)
+            CacheInitialTransform();
+
+            transform.DOKill();
+
+            transform.localPosition =
+                _initialLocalPosition;
+
+            transform.localRotation =
+                _initialLocalRotation;
+
+            gameObject.SetActive(true);
+
+            _targetColor = targetColor;
+            _capacity = capacity;
+
+            _currentPassengers.Clear();
+            _hasDeparted = false;
+        }
+
+        public void DisableForLevel()
+        {
+            CacheInitialTransform();
+
+            transform.DOKill();
+
+            transform.localPosition =
+                _initialLocalPosition;
+
+            transform.localRotation =
+                _initialLocalRotation;
+
+            _currentPassengers.Clear();
+            _hasDeparted = false;
+
+            gameObject.SetActive(false);
+        }
+
+        public bool TryAddPassenger(
+            Passenger passenger)
+        {
+            if (passenger == null ||
+                _hasDeparted ||
+                IsFull ||
+                _currentPassengers.Contains(passenger))
             {
                 return false;
             }
 
             _currentPassengers.Add(passenger);
+
             passenger.CurrentWagon = this;
-            passenger.transform.SetParent(this.transform);
+            passenger.transform.SetParent(transform);
+
             return true;
         }
 
-        public bool TryRemovePassenger(Passenger passenger)
+        public bool TryRemovePassenger(
+            Passenger passenger)
         {
-            if (_hasDeparted || !_currentPassengers.Contains(passenger) || passenger == null)
+            if (passenger == null ||
+                _hasDeparted ||
+                !_currentPassengers.Contains(passenger))
             {
                 return false;
             }
 
             _currentPassengers.Remove(passenger);
+
             passenger.CurrentWagon = null;
             passenger.transform.SetParent(null);
+
             return true;
         }
 
         public void CheckCompletion()
         {
-            if (_hasDeparted || !IsFull) return;
-
-            foreach (var passenger in _currentPassengers)
+            if (_hasDeparted || !IsFull)
             {
-                if (passenger == null || passenger.PassengerColor != _targetColor)
+                return;
+            }
+
+            foreach (Passenger passenger
+                     in _currentPassengers)
+            {
+                if (passenger == null ||
+                    passenger.PassengerColor != _targetColor)
                 {
                     return;
                 }
@@ -80,25 +156,62 @@ namespace StationJam.Entities
         private void Depart()
         {
             _hasDeparted = true;
-            Debug.Log($"[{gameObject.name}] Состав собран! Отправление...");
 
-            // ИСПОЛЬЗУЕМ ЛОКАЛЬНЫЕ ОСИ САМОГО ВАГОНА
-            Vector3 moveVector = transform.right;
-            switch (_departureDirection)
-            {
-                case DepartDirection.Left: moveVector = -transform.right; break;
-                case DepartDirection.Right: moveVector = transform.right; break;
-                case DepartDirection.Forward: moveVector = transform.forward; break;
-                case DepartDirection.Backward: moveVector = -transform.forward; break;
-            }
+            Debug.Log(
+                $"[{gameObject.name}] Состав собран. " +
+                "Начинается отправление.");
 
-            transform.DOMove(transform.position + moveVector * 25f, 2f)
+            Vector3 moveVector =
+                GetDepartureVector();
+
+            transform.DOMove(
+                    transform.position +
+                    moveVector * 25f,
+                    2f)
                 .SetEase(Ease.InQuad)
+                .SetLink(gameObject)
                 .OnComplete(() =>
                 {
                     OnWagonDeparted?.Invoke(this);
                     gameObject.SetActive(false);
                 });
+        }
+
+        private Vector3 GetDepartureVector()
+        {
+            switch (_departureDirection)
+            {
+                case DepartDirection.Left:
+                    return -transform.right;
+
+                case DepartDirection.Right:
+                    return transform.right;
+
+                case DepartDirection.Forward:
+                    return transform.forward;
+
+                case DepartDirection.Backward:
+                    return -transform.forward;
+
+                default:
+                    return transform.right;
+            }
+        }
+
+        private void CacheInitialTransform()
+        {
+            if (_initialTransformCached)
+            {
+                return;
+            }
+
+            _initialLocalPosition =
+                transform.localPosition;
+
+            _initialLocalRotation =
+                transform.localRotation;
+
+            _initialTransformCached = true;
         }
     }
 }

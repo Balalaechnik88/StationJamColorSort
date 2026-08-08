@@ -72,6 +72,20 @@ namespace StationJam.Core
                 $"Вагонов до победы: {_wagonsInLevel.Count}");
         }
 
+        public void ResetLevel()
+        {
+            UnsubscribeFromWagons();
+
+            _wagonsInLevel.Clear();
+            _departedWagonsCount = 0;
+            _isInitialized = false;
+
+            SetState(LevelState.NotInitialized);
+
+            Debug.Log(
+                "[LevelFlowDriver] Состояние уровня сброшено.");
+        }
+
         public bool TryStartSwap()
         {
             if (!_isInitialized ||
@@ -81,6 +95,7 @@ namespace StationJam.Core
             }
 
             SetState(LevelState.Swapping);
+
             return true;
         }
 
@@ -175,7 +190,8 @@ namespace StationJam.Core
             OnLevelCompleted?.Invoke();
         }
 
-        private void SetState(LevelState newState)
+        private void SetState(
+            LevelState newState)
         {
             if (_currentState == newState)
             {

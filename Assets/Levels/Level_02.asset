@@ -10,20 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 54a115576f5c9c24fa43a0d6e949b18c, type: 3}
-  m_Name: Level_01
+  m_Name: Level_02
   m_EditorClassIdentifier: 
-  LevelNumber: 1
+  LevelNumber: 2
   InitialBufferColor: 1
   Wagons:
   - TargetColor: 2
     Capacity: 4
-    StartingPassengers: 00000000030000000200000001000000
+    StartingPassengers: 00000000000000000200000002000000
   - TargetColor: 0
     Capacity: 4
-    StartingPassengers: 03000000020000000200000001000000
+    StartingPassengers: 03000000030000000100000001000000
   - TargetColor: 1
     Capacity: 4
-    StartingPassengers: 00000000010000000300000000000000
+    StartingPassengers: 00000000000000000200000002000000
   - TargetColor: 3
     Capacity: 4
-    StartingPassengers: 02000000010000000000000003000000
+    StartingPassengers: 03000000030000000100000001000000

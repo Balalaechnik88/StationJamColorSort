@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
 using StationJam.Entities;
 using StationJam.Data;
 
@@ -14,42 +15,52 @@ namespace StationJam.Core
 
     public class LevelBuilder : MonoBehaviour
     {
-        [Header("Level Data")]
-        [SerializeField] private LevelData _levelData;
-
         [Header("Scene References")]
-        [SerializeField] private TransitSlot _transitSlot;
-        [SerializeField] private List<TrainWagon> _sceneWagons;
-        [SerializeField] private SwapEngine _swapEngine;
-        [SerializeField] private LevelFlowDriver _levelFlowDriver;
+        [SerializeField]
+        private TransitSlot _transitSlot;
+
+        [SerializeField]
+        private List<TrainWagon> _sceneWagons;
+
+        [SerializeField]
+        private SwapEngine _swapEngine;
+
+        [SerializeField]
+        private LevelFlowDriver _levelFlowDriver;
 
         [Header("Prefabs & Visuals")]
-        [SerializeField] private Passenger _passengerPrefab;
+        [SerializeField]
+        private Passenger _passengerPrefab;
+
         [SerializeField]
         private List<ColorMaterialMapping> _materialsMap;
 
-        private void Start()
-        {
-            BuildLevel();
-        }
+        private readonly List<Passenger> _spawnedPassengers =
+            new List<Passenger>();
 
-        private void BuildLevel()
+        public bool BuildLevel(LevelData levelData)
         {
-            if (!TryValidateLevel(out string validationError))
+            if (!TryValidateLevel(
+                    levelData,
+                    out string validationError))
             {
                 Debug.LogError(
                     $"[LevelBuilder] Уровень не создан: " +
                     $"{validationError}");
 
-                return;
+                return false;
             }
 
-            SetActiveWagonsCount(_levelData.Wagons.Count);
+            ClearBuiltLevel();
 
-            Passenger initialBufferPassenger = SpawnPassenger(
-                _levelData.InitialBufferColor,
-                _transitSlot.GetPosition().position,
-                null);
+            SetActiveWagonsCount(
+                levelData.Wagons.Count);
+
+            Passenger initialBufferPassenger =
+                SpawnPassenger(
+                    levelData.InitialBufferColor,
+                    _transitSlot.GetPosition().position,
+                    null);
 
             _swapEngine.InitializeBuffer(
                 initialBufferPassenger);
@@ -58,11 +69,11 @@ namespace StationJam.Core
                 new List<TrainWagon>();
 
             for (int wagonIndex = 0;
-                 wagonIndex < _levelData.Wagons.Count;
+                 wagonIndex < levelData.Wagons.Count;
                  wagonIndex++)
             {
                 WagonSetup setup =
-                    _levelData.Wagons[wagonIndex];
+                    levelData.Wagons[wagonIndex];
 
                 TrainWagon wagon =
                     _sceneWagons[wagonIndex];
@@ -79,10 +90,12 @@ namespace StationJam.Core
                     Transform seatPoint =
                         wagon.SeatPoints[passengerIndex];
 
-                    Passenger passenger = SpawnPassenger(
-                        setup.StartingPassengers[passengerIndex],
-                        seatPoint.position,
-                        wagon);
+                    Passenger passenger =
+                        SpawnPassenger(
+                            setup.StartingPassengers[
+                                passengerIndex],
+                            seatPoint.position,
+                            wagon);
 
                     bool passengerAdded =
                         wagon.TryAddPassenger(passenger);
@@ -90,41 +103,87 @@ namespace StationJam.Core
                     if (!passengerAdded)
                     {
                         Debug.LogError(
-                            $"[LevelBuilder] Не удалось добавить " +
-                            $"пассажира {passengerIndex} " +
-                            $"в вагон {wagonIndex}.");
+                            $"[LevelBuilder] Не удалось " +
+                            $"добавить пассажира " +
+                            $"{passengerIndex} в вагон " +
+                            $"{wagonIndex}.");
                     }
                 }
 
                 wagonsInLevel.Add(wagon);
             }
 
-            _levelFlowDriver.Initialize(wagonsInLevel);
+            _levelFlowDriver.Initialize(
+                wagonsInLevel);
 
             Debug.Log(
                 $"[LevelBuilder] Уровень " +
-                $"{_levelData.LevelNumber} успешно создан.");
+                $"{levelData.LevelNumber} успешно создан.");
+
+            return true;
+        }
+
+        private void ClearBuiltLevel()
+        {
+            _levelFlowDriver.ResetLevel();
+            _swapEngine.InitializeBuffer(null);
+
+            foreach (Passenger passenger
+                     in _spawnedPassengers)
+            {
+                if (passenger == null)
+                {
+                    continue;
+                }
+
+                passenger.transform.DOKill();
+                passenger.gameObject.SetActive(false);
+
+                Destroy(passenger.gameObject);
+            }
+
+            _spawnedPassengers.Clear();
+
+            foreach (TrainWagon wagon
+                     in _sceneWagons)
+            {
+                if (wagon != null)
+                {
+                    wagon.DisableForLevel();
+                }
+            }
         }
 
         private bool TryValidateLevel(
+            LevelData levelData,
             out string errorMessage)
         {
-            if (!TryValidateReferences(out errorMessage))
+            if (!TryValidateReferences(
+                    out errorMessage))
             {
                 return false;
             }
 
-            if (!_levelData.TryValidate(out errorMessage))
+            if (levelData == null)
+            {
+                errorMessage =
+                    "Передан пустой LevelData.";
+
+                return false;
+            }
+
+            if (!levelData.TryValidate(
+                    out errorMessage))
             {
                 return false;
             }
 
-            if (_levelData.Wagons.Count >
+            if (levelData.Wagons.Count >
                 _sceneWagons.Count)
             {
                 errorMessage =
                     $"В LevelData указано " +
-                    $"{_levelData.Wagons.Count} вагонов, " +
+                    $"{levelData.Wagons.Count} вагонов, " +
                     $"но на сцене доступно только " +
                     $"{_sceneWagons.Count}.";
 
@@ -132,21 +191,21 @@ namespace StationJam.Core
             }
 
             if (!HasMaterialForColor(
-                    _levelData.InitialBufferColor))
+                    levelData.InitialBufferColor))
             {
                 errorMessage =
                     $"Не назначен материал для цвета " +
-                    $"{_levelData.InitialBufferColor}.";
+                    $"{levelData.InitialBufferColor}.";
 
                 return false;
             }
 
             for (int wagonIndex = 0;
-                 wagonIndex < _levelData.Wagons.Count;
+                 wagonIndex < levelData.Wagons.Count;
                  wagonIndex++)
             {
                 WagonSetup setup =
-                    _levelData.Wagons[wagonIndex];
+                    levelData.Wagons[wagonIndex];
 
                 TrainWagon wagon =
                     _sceneWagons[wagonIndex];
@@ -174,8 +233,9 @@ namespace StationJam.Core
                 {
                     errorMessage =
                         $"Вместимость вагона {wagonIndex} " +
-                        $"равна {setup.Capacity}, но точек мест " +
-                        $"только {wagon.SeatPoints.Length}.";
+                        $"равна {setup.Capacity}, но точек " +
+                        $"мест только " +
+                        $"{wagon.SeatPoints.Length}.";
 
                     return false;
                 }
@@ -199,9 +259,10 @@ namespace StationJam.Core
                         setup.TargetColor))
                 {
                     errorMessage =
-                        $"Не назначен материал для целевого " +
-                        $"цвета {setup.TargetColor} " +
-                        $"вагона {wagonIndex}.";
+                        $"Не назначен материал для " +
+                        $"целевого цвета " +
+                        $"{setup.TargetColor} вагона " +
+                        $"{wagonIndex}.";
 
                     return false;
                 }
@@ -209,12 +270,14 @@ namespace StationJam.Core
                 foreach (ColorType passengerColor
                          in setup.StartingPassengers)
                 {
-                    if (!HasMaterialForColor(passengerColor))
+                    if (!HasMaterialForColor(
+                            passengerColor))
                     {
                         errorMessage =
-                            $"Не назначен материал для цвета " +
-                            $"{passengerColor}, используемого " +
-                            $"в вагоне {wagonIndex}.";
+                            $"Не назначен материал для " +
+                            $"цвета {passengerColor}, " +
+                            $"используемого в вагоне " +
+                            $"{wagonIndex}.";
 
                         return false;
                     }
@@ -228,21 +291,19 @@ namespace StationJam.Core
         private bool TryValidateReferences(
             out string errorMessage)
         {
-            if (_levelData == null)
-            {
-                errorMessage = "LevelData не назначен.";
-                return false;
-            }
-
             if (_transitSlot == null)
             {
-                errorMessage = "TransitSlot не назначен.";
+                errorMessage =
+                    "TransitSlot не назначен.";
+
                 return false;
             }
 
             if (_swapEngine == null)
             {
-                errorMessage = "SwapEngine не назначен.";
+                errorMessage =
+                    "SwapEngine не назначен.";
+
                 return false;
             }
 
@@ -294,10 +355,18 @@ namespace StationJam.Core
                 TrainWagon wagon =
                     _sceneWagons[wagonIndex];
 
-                if (wagon != null)
+                if (wagon == null)
                 {
-                    wagon.gameObject.SetActive(
-                        wagonIndex < activeWagonsCount);
+                    continue;
+                }
+
+                if (wagonIndex < activeWagonsCount)
+                {
+                    wagon.gameObject.SetActive(true);
+                }
+                else
+                {
+                    wagon.DisableForLevel();
                 }
             }
         }
@@ -307,10 +376,11 @@ namespace StationJam.Core
             Vector3 position,
             TrainWagon wagon)
         {
-            Passenger newPassenger = Instantiate(
-                _passengerPrefab,
-                position,
-                Quaternion.identity);
+            Passenger newPassenger =
+                Instantiate(
+                    _passengerPrefab,
+                    position,
+                    Quaternion.identity);
 
             if (wagon != null)
             {
@@ -321,7 +391,12 @@ namespace StationJam.Core
             Material material =
                 GetMaterialByColor(color);
 
-            newPassenger.SetData(color, material);
+            newPassenger.SetData(
+                color,
+                material);
+
+            _spawnedPassengers.Add(
+                newPassenger);
 
             return newPassenger;
         }

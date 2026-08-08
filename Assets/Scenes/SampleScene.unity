@@ -1710,6 +1710,7 @@ GameObject:
   - component: {fileID: 1454318364}
   - component: {fileID: 1454318366}
   - component: {fileID: 1454318367}
+  - component: {fileID: 1454318368}
   m_Layer: 0
   m_Name: GameCore
   m_TagString: Untagged
@@ -1774,7 +1775,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48da4cc44b68c264fb33f114ca709596, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _levelData: {fileID: 11400000, guid: be61d1004aa2d3a44919cf26786363cd, type: 2}
   _transitSlot: {fileID: 91172911}
   _sceneWagons:
   - {fileID: 357458933}
@@ -1793,6 +1793,23 @@ MonoBehaviour:
     Material: {fileID: 2100000, guid: d6a2125bf131e85478cd4126cec6d98a, type: 2}
   - Color: 3
     Material: {fileID: 2100000, guid: 419aafa37f496b749b34de2a39c2dc5e, type: 2}
+--- !u!114 &1454318368
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1454318363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 627ca94d4cf3e684686710c30ba96174, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _levelBuilder: {fileID: 1454318367}
+  _levels:
+  - {fileID: 11400000, guid: be61d1004aa2d3a44919cf26786363cd, type: 2}
+  - {fileID: 11400000, guid: b4eb507010fce664eae543b95267895e, type: 2}
+  _startLevelIndex: 0
 --- !u!1 &1467545984
 GameObject:
   m_ObjectHideFlags: 0
@@ -1932,6 +1949,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _levelFlowDriver: {fileID: 1454318366}
+  _levelSequence: {fileID: 1454318368}
   _victoryPanel: {fileID: 1793301945}
 --- !u!114 &1651764479
 MonoBehaviour:

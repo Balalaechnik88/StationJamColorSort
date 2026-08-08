@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using StationJam.Core;
 
 namespace StationJam.UI
@@ -7,25 +6,61 @@ namespace StationJam.UI
     public class VictoryScreen : MonoBehaviour
     {
         [Header("Dependencies")]
-        [SerializeField] private LevelFlowDriver _levelFlowDriver;
+        [SerializeField]
+        private LevelFlowDriver _levelFlowDriver;
+
+        [SerializeField]
+        private LevelSequence _levelSequence;
 
         [Header("UI Panels")]
-        [SerializeField] private GameObject _victoryPanel;
+        [SerializeField]
+        private GameObject _victoryPanel;
+
+        private void Awake()
+        {
+            HideVictory();
+        }
 
         private void OnEnable()
         {
-            if (_levelFlowDriver != null)
+            if (_levelFlowDriver == null)
             {
-                _levelFlowDriver.OnLevelCompleted += ShowVictory;
+                return;
             }
+
+            _levelFlowDriver.OnLevelCompleted +=
+                ShowVictory;
+
+            _levelFlowDriver.OnStateChanged +=
+                HandleLevelStateChanged;
         }
 
         private void OnDisable()
         {
-            if (_levelFlowDriver != null)
+            if (_levelFlowDriver == null)
             {
-                _levelFlowDriver.OnLevelCompleted -= ShowVictory;
+                return;
             }
+
+            _levelFlowDriver.OnLevelCompleted -=
+                ShowVictory;
+
+            _levelFlowDriver.OnStateChanged -=
+                HandleLevelStateChanged;
+        }
+
+        public void LoadNextLevel()
+        {
+            if (_levelSequence == null)
+            {
+                Debug.LogError(
+                    "[VictoryScreen] LevelSequence " +
+                    "не назначен.");
+
+                return;
+            }
+
+            _levelSequence.LoadNextLevel();
         }
 
         private void ShowVictory()
@@ -36,11 +71,21 @@ namespace StationJam.UI
             }
         }
 
-        // Ётот метод по-прежнему висит на кнопке "Next" в Canvas
-        public void LoadNextLevel()
+        private void HideVictory()
         {
-            int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
-            SceneManager.LoadScene(currentSceneIndex);
+            if (_victoryPanel != null)
+            {
+                _victoryPanel.SetActive(false);
+            }
+        }
+
+        private void HandleLevelStateChanged(
+            LevelState levelState)
+        {
+            if (levelState != LevelState.Completed)
+            {
+                HideVictory();
+            }
         }
     }
 }
