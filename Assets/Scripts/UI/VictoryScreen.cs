@@ -28,11 +28,11 @@ namespace StationJam.UI
                 return;
             }
 
-            _levelFlowDriver.OnLevelCompleted +=
-                ShowVictory;
+            _levelFlowDriver.LevelCompleted +=
+                OnLevelCompleted;
 
-            _levelFlowDriver.OnStateChanged +=
-                HandleLevelStateChanged;
+            _levelFlowDriver.StateChanged +=
+                OnLevelStateChanged;
         }
 
         private void OnDisable()
@@ -42,11 +42,11 @@ namespace StationJam.UI
                 return;
             }
 
-            _levelFlowDriver.OnLevelCompleted -=
-                ShowVictory;
+            _levelFlowDriver.LevelCompleted -=
+                OnLevelCompleted;
 
-            _levelFlowDriver.OnStateChanged -=
-                HandleLevelStateChanged;
+            _levelFlowDriver.StateChanged -=
+                OnLevelStateChanged;
         }
 
         public void LoadNextLevel()
@@ -79,7 +79,12 @@ namespace StationJam.UI
             }
         }
 
-        private void HandleLevelStateChanged(
+        private void OnLevelCompleted()
+        {
+            ShowVictory();
+        }
+
+        private void OnLevelStateChanged(
             LevelState levelState)
         {
             if (levelState != LevelState.Completed)

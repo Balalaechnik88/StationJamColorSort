@@ -35,17 +35,22 @@ namespace StationJam.Entities
         private List<Passenger> _currentPassengers =
             new List<Passenger>();
 
-        public event Action<TrainWagon> OnWagonDeparted;
-
         private bool _hasDeparted;
 
         private bool _initialTransformCached;
         private Vector3 _initialLocalPosition;
         private Quaternion _initialLocalRotation;
 
-        public Transform[] SeatPoints => _seatPoints;
-        public ColorType TargetColor => _targetColor;
-        public int Capacity => _capacity;
+        public event Action<TrainWagon> WagonDeparted;
+
+        public Transform[] SeatPoints =>
+            _seatPoints;
+
+        public ColorType TargetColor =>
+            _targetColor;
+
+        public int Capacity =>
+            _capacity;
 
         public bool IsFull =>
             _currentPassengers.Count >= _capacity;
@@ -172,7 +177,7 @@ namespace StationJam.Entities
                 .SetLink(gameObject)
                 .OnComplete(() =>
                 {
-                    OnWagonDeparted?.Invoke(this);
+                    WagonDeparted?.Invoke(this);
                     gameObject.SetActive(false);
                 });
         }

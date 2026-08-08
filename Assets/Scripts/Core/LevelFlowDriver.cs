@@ -7,9 +7,6 @@ namespace StationJam.Core
 {
     public class LevelFlowDriver : MonoBehaviour
     {
-        public event Action OnLevelCompleted;
-        public event Action<LevelState> OnStateChanged;
-
         [Header("State")]
         [SerializeField]
         private LevelState _currentState =
@@ -21,10 +18,27 @@ namespace StationJam.Core
         private int _departedWagonsCount;
         private bool _isInitialized;
 
-        public LevelState CurrentState => _currentState;
+        public event Action LevelCompleted;
+        public event Action<LevelState> StateChanged;
+
+        public LevelState CurrentState =>
+            _currentState;
 
         public bool CanAcceptInput =>
             _currentState == LevelState.Playing;
+
+        private void OnEnable()
+        {
+            if (_isInitialized)
+            {
+                SubscribeToWagons();
+            }
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeFromWagons();
+        }
 
         public void Initialize(
             IReadOnlyList<TrainWagon> wagons)
@@ -110,19 +124,6 @@ namespace StationJam.Core
             SetState(LevelState.Playing);
         }
 
-        private void OnEnable()
-        {
-            if (_isInitialized)
-            {
-                SubscribeToWagons();
-            }
-        }
-
-        private void OnDisable()
-        {
-            UnsubscribeFromWagons();
-        }
-
         private void SubscribeToWagons()
         {
             foreach (TrainWagon wagon in _wagonsInLevel)
@@ -132,8 +133,8 @@ namespace StationJam.Core
                     continue;
                 }
 
-                wagon.OnWagonDeparted -= HandleWagonDeparted;
-                wagon.OnWagonDeparted += HandleWagonDeparted;
+                wagon.WagonDeparted -= OnWagonDeparted;
+                wagon.WagonDeparted += OnWagonDeparted;
             }
         }
 
@@ -143,12 +144,45 @@ namespace StationJam.Core
             {
                 if (wagon != null)
                 {
-                    wagon.OnWagonDeparted -= HandleWagonDeparted;
+                    wagon.WagonDeparted -= OnWagonDeparted;
                 }
             }
         }
 
-        private void HandleWagonDeparted(
+        private void CompleteLevel()
+        {
+            if (_currentState == LevelState.Completed)
+            {
+                return;
+            }
+
+            SetState(LevelState.Completed);
+
+            Debug.Log(
+                "[LevelFlowDriver] Уровень пройден. " +
+                "Все вагоны отправлены.");
+
+            LevelCompleted?.Invoke();
+        }
+
+        private void SetState(
+            LevelState newState)
+        {
+            if (_currentState == newState)
+            {
+                return;
+            }
+
+            _currentState = newState;
+
+            Debug.Log(
+                $"[LevelFlowDriver] Состояние уровня: " +
+                $"{_currentState}");
+
+            StateChanged?.Invoke(_currentState);
+        }
+
+        private void OnWagonDeparted(
             TrainWagon wagon)
         {
             if (!_isInitialized ||
@@ -172,39 +206,6 @@ namespace StationJam.Core
             {
                 CompleteLevel();
             }
-        }
-
-        private void CompleteLevel()
-        {
-            if (_currentState == LevelState.Completed)
-            {
-                return;
-            }
-
-            SetState(LevelState.Completed);
-
-            Debug.Log(
-                "[LevelFlowDriver] Уровень пройден. " +
-                "Все вагоны отправлены.");
-
-            OnLevelCompleted?.Invoke();
-        }
-
-        private void SetState(
-            LevelState newState)
-        {
-            if (_currentState == newState)
-            {
-                return;
-            }
-
-            _currentState = newState;
-
-            Debug.Log(
-                $"[LevelFlowDriver] Состояние уровня: " +
-                $"{_currentState}");
-
-            OnStateChanged?.Invoke(_currentState);
         }
     }
 }

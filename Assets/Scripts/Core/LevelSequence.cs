@@ -20,10 +20,9 @@ namespace StationJam.Core
         [Min(0)]
         private int _startLevelIndex;
 
-        public event Action<int, LevelData>
-            OnLevelStarted;
-
         private int _currentLevelIndex = -1;
+
+        public event Action<int, LevelData> LevelStarted;
 
         public int CurrentLevelIndex =>
             _currentLevelIndex;
@@ -48,7 +47,8 @@ namespace StationJam.Core
                 return;
             }
 
-            LoadLevel(_currentLevelIndex + 1);
+            LoadLevel(
+                _currentLevelIndex + 1);
         }
 
         public void RestartCurrentLevel()
@@ -62,10 +62,12 @@ namespace StationJam.Core
                 return;
             }
 
-            LoadLevel(_currentLevelIndex);
+            LoadLevel(
+                _currentLevelIndex);
         }
 
-        private void LoadLevel(int levelIndex)
+        private void LoadLevel(
+            int levelIndex)
         {
             if (_levelBuilder == null)
             {
@@ -109,23 +111,28 @@ namespace StationJam.Core
             }
 
             bool levelBuilt =
-                _levelBuilder.BuildLevel(levelData);
+                _levelBuilder.BuildLevel(
+                    levelData);
 
             if (!levelBuilt)
             {
                 return;
             }
 
-            _currentLevelIndex = levelIndex;
+            _currentLevelIndex =
+                levelIndex;
+
+            int displayedLevelIndex =
+                _currentLevelIndex + 1;
 
             Debug.Log(
                 $"[LevelSequence] Запущен уровень " +
                 $"{levelData.LevelNumber}. " +
                 $"Позиция в списке: " +
-                $"{_currentLevelIndex + 1}/" +
+                $"{displayedLevelIndex}/" +
                 $"{_levels.Count}.");
 
-            OnLevelStarted?.Invoke(
+            LevelStarted?.Invoke(
                 _currentLevelIndex,
                 levelData);
         }
