@@ -6,13 +6,6 @@ using StationJam.Data;
 
 namespace StationJam.Core
 {
-    [System.Serializable]
-    public struct ColorMaterialMapping
-    {
-        public ColorType Color;
-        public Material Material;
-    }
-
     public class LevelBuilder : MonoBehaviour
     {
         [Header("Scene References")]
@@ -38,7 +31,8 @@ namespace StationJam.Core
         private readonly List<Passenger> _spawnedPassengers =
             new List<Passenger>();
 
-        public bool BuildLevel(LevelData levelData)
+        public bool BuildLevel(
+            LevelData levelData)
         {
             if (!TryValidateLevel(
                     levelData,
@@ -59,13 +53,15 @@ namespace StationJam.Core
             Passenger initialBufferPassenger =
                 SpawnPassenger(
                     levelData.InitialBufferColor,
-                    _transitSlot.GetPosition().position,
+                    _transitSlot
+                        .GetPosition()
+                        .position,
                     null);
 
             _swapEngine.InitializeBuffer(
                 initialBufferPassenger);
 
-            var wagonsInLevel =
+            List<TrainWagon> wagonsInLevel =
                 new List<TrainWagon>();
 
             for (int wagonIndex = 0;
@@ -88,7 +84,8 @@ namespace StationJam.Core
                      passengerIndex++)
                 {
                     Transform seatPoint =
-                        wagon.SeatPoints[passengerIndex];
+                        wagon.SeatPoints[
+                            passengerIndex];
 
                     Passenger passenger =
                         SpawnPassenger(
@@ -98,15 +95,16 @@ namespace StationJam.Core
                             wagon);
 
                     bool passengerAdded =
-                        wagon.TryAddPassenger(passenger);
+                        wagon.TryAddPassenger(
+                            passenger);
 
                     if (!passengerAdded)
                     {
                         Debug.LogError(
                             $"[LevelBuilder] Не удалось " +
                             $"добавить пассажира " +
-                            $"{passengerIndex} в вагон " +
-                            $"{wagonIndex}.");
+                            $"{passengerIndex} " +
+                            $"в вагон {wagonIndex}.");
                     }
                 }
 
@@ -118,7 +116,8 @@ namespace StationJam.Core
 
             Debug.Log(
                 $"[LevelBuilder] Уровень " +
-                $"{levelData.LevelNumber} успешно создан.");
+                $"{levelData.LevelNumber} " +
+                "успешно создан.");
 
             return true;
         }
@@ -126,6 +125,7 @@ namespace StationJam.Core
         private void ClearBuiltLevel()
         {
             _levelFlowDriver.ResetLevel();
+
             _swapEngine.InitializeBuffer(null);
 
             foreach (Passenger passenger
@@ -137,7 +137,9 @@ namespace StationJam.Core
                 }
 
                 passenger.transform.DOKill();
-                passenger.gameObject.SetActive(false);
+
+                passenger.gameObject.SetActive(
+                    false);
 
                 Destroy(passenger.gameObject);
             }
@@ -232,8 +234,9 @@ namespace StationJam.Core
                     wagon.SeatPoints.Length)
                 {
                     errorMessage =
-                        $"Вместимость вагона {wagonIndex} " +
-                        $"равна {setup.Capacity}, но точек " +
+                        $"Вместимость вагона " +
+                        $"{wagonIndex} равна " +
+                        $"{setup.Capacity}, но точек " +
                         $"мест только " +
                         $"{wagon.SeatPoints.Length}.";
 
@@ -244,7 +247,8 @@ namespace StationJam.Core
                      seatIndex < setup.Capacity;
                      seatIndex++)
                 {
-                    if (wagon.SeatPoints[seatIndex] == null)
+                    if (wagon.SeatPoints[
+                            seatIndex] == null)
                     {
                         errorMessage =
                             $"У вагона {wagonIndex} " +
@@ -261,8 +265,8 @@ namespace StationJam.Core
                     errorMessage =
                         $"Не назначен материал для " +
                         $"целевого цвета " +
-                        $"{setup.TargetColor} вагона " +
-                        $"{wagonIndex}.";
+                        $"{setup.TargetColor} " +
+                        $"вагона {wagonIndex}.";
 
                     return false;
                 }
@@ -285,6 +289,7 @@ namespace StationJam.Core
             }
 
             errorMessage = string.Empty;
+
             return true;
         }
 
@@ -342,6 +347,7 @@ namespace StationJam.Core
             }
 
             errorMessage = string.Empty;
+
             return true;
         }
 
@@ -360,9 +366,11 @@ namespace StationJam.Core
                     continue;
                 }
 
-                if (wagonIndex < activeWagonsCount)
+                if (wagonIndex <
+                    activeWagonsCount)
                 {
-                    wagon.gameObject.SetActive(true);
+                    wagon.gameObject.SetActive(
+                        true);
                 }
                 else
                 {

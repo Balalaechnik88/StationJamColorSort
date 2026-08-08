@@ -4,20 +4,6 @@ using StationJam.Entities;
 
 namespace StationJam.Data
 {
-    [System.Serializable]
-    public class WagonSetup
-    {
-        [Tooltip("Цвет, который собирает этот вагон")]
-        public ColorType TargetColor;
-
-        [Tooltip("Количество мест в вагоне")]
-        public int Capacity = 4;
-
-        [Tooltip("Цвета пассажиров, которые сидят в вагоне на старте уровня")]
-        public List<ColorType> StartingPassengers =
-            new List<ColorType>();
-    }
-
     [CreateAssetMenu(
         fileName = "Level_00",
         menuName = "StationJam/Level Data",
@@ -28,7 +14,9 @@ namespace StationJam.Data
         public int LevelNumber;
 
         [Header("Buffer Settings")]
-        [Tooltip("Пассажир, который изначально стоит в транзитном слоте")]
+        [Tooltip(
+            "Пассажир, который изначально стоит " +
+            "в транзитном слоте")]
         public ColorType InitialBufferColor;
 
         [Header("Wagons Configuration")]
@@ -36,9 +24,11 @@ namespace StationJam.Data
         public List<WagonSetup> Wagons =
             new List<WagonSetup>();
 
-        public bool TryValidate(out string errorMessage)
+        public bool TryValidate(
+            out string errorMessage)
         {
-            if (Wagons == null || Wagons.Count == 0)
+            if (Wagons == null ||
+                Wagons.Count == 0)
             {
                 errorMessage =
                     "В конфигурации уровня отсутствуют вагоны.";
@@ -46,10 +36,10 @@ namespace StationJam.Data
                 return false;
             }
 
-            var availablePassengers =
+            Dictionary<ColorType, int> availablePassengers =
                 new Dictionary<ColorType, int>();
 
-            var requiredPassengers =
+            Dictionary<ColorType, int> requiredPassengers =
                 new Dictionary<ColorType, int>();
 
             AddColorCount(
@@ -61,12 +51,14 @@ namespace StationJam.Data
                  wagonIndex < Wagons.Count;
                  wagonIndex++)
             {
-                WagonSetup setup = Wagons[wagonIndex];
+                WagonSetup setup =
+                    Wagons[wagonIndex];
 
                 if (setup == null)
                 {
                     errorMessage =
-                        $"Настройка вагона {wagonIndex} отсутствует.";
+                        $"Настройка вагона " +
+                        $"{wagonIndex} отсутствует.";
 
                     return false;
                 }
@@ -74,8 +66,9 @@ namespace StationJam.Data
                 if (setup.Capacity <= 0)
                 {
                     errorMessage =
-                        $"Вместимость вагона {wagonIndex} " +
-                        "должна быть больше нуля.";
+                        $"Вместимость вагона " +
+                        $"{wagonIndex} должна быть " +
+                        "больше нуля.";
 
                     return false;
                 }
@@ -83,24 +76,23 @@ namespace StationJam.Data
                 if (setup.StartingPassengers == null)
                 {
                     errorMessage =
-                        $"У вагона {wagonIndex} отсутствует " +
-                        "список начальных пассажиров.";
+                        $"У вагона {wagonIndex} " +
+                        "отсутствует список начальных " +
+                        "пассажиров.";
 
                     return false;
                 }
 
-                /*
-                 * При текущей механике пассажиры только меняются
-                 * местами с пассажиром из буфера.
-                 * Поэтому пустое место заполнить невозможно.
-                 */
-                if (setup.StartingPassengers.Count != setup.Capacity)
+                if (setup.StartingPassengers.Count !=
+                    setup.Capacity)
                 {
                     errorMessage =
-                        $"Вагон {wagonIndex} имеет вместимость " +
-                        $"{setup.Capacity}, но начальных пассажиров " +
+                        $"Вагон {wagonIndex} имеет " +
+                        $"вместимость {setup.Capacity}, " +
+                        $"но начальных пассажиров " +
                         $"{setup.StartingPassengers.Count}. " +
-                        "Вагон должен быть полностью заполнен.";
+                        "Вагон должен быть полностью " +
+                        "заполнен.";
 
                     return false;
                 }
@@ -120,14 +112,16 @@ namespace StationJam.Data
                 }
             }
 
-            foreach (KeyValuePair<ColorType, int> requirement
-                     in requiredPassengers)
+            foreach (
+                KeyValuePair<ColorType, int> requirement
+                in requiredPassengers)
             {
                 availablePassengers.TryGetValue(
                     requirement.Key,
                     out int availableCount);
 
-                if (availableCount < requirement.Value)
+                if (availableCount <
+                    requirement.Value)
                 {
                     errorMessage =
                         $"Недостаточно пассажиров цвета " +
@@ -140,6 +134,7 @@ namespace StationJam.Data
             }
 
             errorMessage = string.Empty;
+
             return true;
         }
 
