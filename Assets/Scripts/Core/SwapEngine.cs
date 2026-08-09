@@ -1,11 +1,13 @@
-using UnityEngine;
 using DG.Tweening;
+using UnityEngine;
 using StationJam.Entities;
 
 namespace StationJam.Core
 {
     public class SwapEngine : MonoBehaviour
     {
+        private const int JumpCount = 1;
+
         [Header("Scene References")]
         [SerializeField]
         private TransitSlot _transitSlot;
@@ -19,21 +21,26 @@ namespace StationJam.Core
 
         [Header("Animation Settings")]
         [SerializeField]
+        [Min(0f)]
         private float _jumpPower = 2f;
 
         [SerializeField]
+        [Min(0f)]
         private float _jumpDuration = 0.5f;
 
         public void InitializeBuffer(
             Passenger initialPassenger)
         {
-            _passengerInBuffer = initialPassenger;
+            _passengerInBuffer =
+                initialPassenger;
 
             if (_passengerInBuffer != null &&
                 _transitSlot != null)
             {
                 _passengerInBuffer.SeatPosition =
-                    _transitSlot.GetPosition().position;
+                    _transitSlot
+                        .GetPosition()
+                        .position;
             }
         }
 
@@ -49,7 +56,8 @@ namespace StationJam.Core
             if (_levelFlowDriver == null)
             {
                 Debug.LogError(
-                    "[SwapEngine] LevelFlowDriver не назначен.");
+                    "[SwapEngine] LevelFlowDriver " +
+                    "не назначен.");
 
                 return;
             }
@@ -78,7 +86,9 @@ namespace StationJam.Core
                 trainPassenger.CurrentWagon;
 
             Vector3 targetBufferPosition =
-                _transitSlot.GetPosition().position;
+                _transitSlot
+                    .GetPosition()
+                    .position;
 
             trainPassenger.SeatPosition =
                 trainPassenger.transform.position;
@@ -88,24 +98,28 @@ namespace StationJam.Core
                     trainPassenger))
             {
                 Debug.LogError(
-                    "[SwapEngine] Ќе удалось удалить пассажира " +
-                    "из исходного вагона.");
+                    "[SwapEngine] Ќе удалось удалить " +
+                    "пассажира из исходного вагона.");
 
                 _levelFlowDriver.FinishSwap();
+
                 return;
             }
 
-            _passengerInBuffer = trainPassenger;
+            _passengerInBuffer =
+                trainPassenger;
 
             trainPassenger.PlayJump();
 
-            Tween moveTween = trainPassenger.transform
-                .DOJump(
-                    targetBufferPosition,
-                    _jumpPower,
-                    1,
-                    _jumpDuration)
-                .SetLink(trainPassenger.gameObject);
+            Tween moveTween =
+                trainPassenger.transform
+                    .DOJump(
+                        targetBufferPosition,
+                        _jumpPower,
+                        JumpCount,
+                        _jumpDuration)
+                    .SetLink(
+                        trainPassenger.gameObject);
 
             moveTween.OnComplete(() =>
             {
@@ -137,6 +151,7 @@ namespace StationJam.Core
                     "не находитс€ в вагоне.");
 
                 _levelFlowDriver.FinishSwap();
+
                 return;
             }
 
@@ -144,7 +159,9 @@ namespace StationJam.Core
                 trainPassenger.transform.position;
 
             Vector3 targetBufferPosition =
-                _transitSlot.GetPosition().position;
+                _transitSlot
+                    .GetPosition()
+                    .position;
 
             trainPassenger.SeatPosition =
                 targetTrainSeat;
@@ -156,10 +173,11 @@ namespace StationJam.Core
             if (!removedFromWagon)
             {
                 Debug.LogError(
-                    "[SwapEngine] Ќе удалось удалить выбранного " +
-                    "пассажира из вагона.");
+                    "[SwapEngine] Ќе удалось удалить " +
+                    "выбранного пассажира из вагона.");
 
                 _levelFlowDriver.FinishSwap();
+
                 return;
             }
 
@@ -170,15 +188,14 @@ namespace StationJam.Core
             if (!addedToWagon)
             {
                 Debug.LogError(
-                    "[SwapEngine] Ќе удалось добавить пассажира " +
-                    "из буфера в вагон.");
+                    "[SwapEngine] Ќе удалось добавить " +
+                    "пассажира из буфера в вагон.");
 
-                // ¬озвращаем исходного пассажира обратно,
-                // чтобы состо€ние вагона не оказалось сломанным.
                 targetWagon.TryAddPassenger(
                     trainPassenger);
 
                 _levelFlowDriver.FinishSwap();
+
                 return;
             }
 
@@ -193,18 +210,20 @@ namespace StationJam.Core
                     .DOJump(
                         targetBufferPosition,
                         _jumpPower,
-                        1,
+                        JumpCount,
                         _jumpDuration)
-                    .SetLink(trainPassenger.gameObject));
+                    .SetLink(
+                        trainPassenger.gameObject));
 
             swapSequence.Join(
                 bufferPassenger.transform
                     .DOJump(
                         targetTrainSeat,
                         _jumpPower,
-                        1,
+                        JumpCount,
                         _jumpDuration)
-                    .SetLink(bufferPassenger.gameObject));
+                    .SetLink(
+                        bufferPassenger.gameObject));
 
             swapSequence.OnComplete(() =>
             {
@@ -220,13 +239,6 @@ namespace StationJam.Core
                 _passengerInBuffer =
                     trainPassenger;
 
-                /*
-                 * —начала завершаем обмен и возвращаем
-                 * состо€ние Playing.
-                 *
-                 * «атем провер€ем вагон: эта проверка может
-                 * запустить его отправление и победу.
-                 */
                 _levelFlowDriver.FinishSwap();
 
                 targetWagon.CheckCompletion();

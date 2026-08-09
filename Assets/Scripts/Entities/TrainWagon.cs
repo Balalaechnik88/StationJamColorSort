@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using DG.Tweening;
+using UnityEngine;
 
 namespace StationJam.Entities
 {
@@ -30,13 +30,21 @@ namespace StationJam.Entities
         private DepartDirection _departureDirection =
             DepartDirection.Right;
 
+        [Header("Departure Animation")]
+        [SerializeField]
+        [Min(0f)]
+        private float _departureDistance = 25f;
+
+        [SerializeField]
+        [Min(0f)]
+        private float _departureDuration = 2f;
+
         [Header("State (Read Only)")]
         [SerializeField]
         private List<Passenger> _currentPassengers =
             new List<Passenger>();
 
         private bool _hasDeparted;
-
         private bool _initialTransformCached;
         private Vector3 _initialLocalPosition;
         private Quaternion _initialLocalRotation;
@@ -169,15 +177,19 @@ namespace StationJam.Entities
             Vector3 moveVector =
                 GetDepartureVector();
 
+            Vector3 targetPosition =
+                transform.position +
+                moveVector * _departureDistance;
+
             transform.DOMove(
-                    transform.position +
-                    moveVector * 25f,
-                    2f)
+                    targetPosition,
+                    _departureDuration)
                 .SetEase(Ease.InQuad)
                 .SetLink(gameObject)
                 .OnComplete(() =>
                 {
                     WagonDeparted?.Invoke(this);
+
                     gameObject.SetActive(false);
                 });
         }
