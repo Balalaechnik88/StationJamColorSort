@@ -358,6 +358,8 @@ MonoBehaviour:
   _targetColor: 2
   _capacity: 4
   _departureDirection: 2
+  _departureDistance: 25
+  _departureDuration: 2
   _currentPassengers:
   - {fileID: 0}
   - {fileID: 0}
@@ -658,6 +660,8 @@ MonoBehaviour:
   _targetColor: 0
   _capacity: 4
   _departureDirection: 3
+  _departureDistance: 25
+  _departureDuration: 2
   _currentPassengers:
   - {fileID: 0}
   - {fileID: 0}
@@ -824,6 +828,8 @@ MonoBehaviour:
   _targetColor: 3
   _capacity: 4
   _departureDirection: 3
+  _departureDistance: 25
+  _departureDuration: 2
   _currentPassengers:
   - {fileID: 0}
   - {fileID: 0}
@@ -1711,6 +1717,7 @@ GameObject:
   - component: {fileID: 1454318366}
   - component: {fileID: 1454318367}
   - component: {fileID: 1454318368}
+  - component: {fileID: 1454318369}
   m_Layer: 0
   m_Name: GameCore
   m_TagString: Untagged
@@ -1783,16 +1790,7 @@ MonoBehaviour:
   - {fileID: 417414643}
   _swapEngine: {fileID: 1454318364}
   _levelFlowDriver: {fileID: 1454318366}
-  _passengerPrefab: {fileID: 6345594262487882829, guid: 7207ec4263a669c428c69a759f5d57ba, type: 3}
-  _materialsMap:
-  - Color: 0
-    Material: {fileID: 2100000, guid: 176a1ee793dbb5141817f9d7840b57c0, type: 2}
-  - Color: 1
-    Material: {fileID: 2100000, guid: bae8cff2ce5379e4b80c9b3379b7f138, type: 2}
-  - Color: 2
-    Material: {fileID: 2100000, guid: d6a2125bf131e85478cd4126cec6d98a, type: 2}
-  - Color: 3
-    Material: {fileID: 2100000, guid: 419aafa37f496b749b34de2a39c2dc5e, type: 2}
+  _passengerFactory: {fileID: 1454318369}
 --- !u!114 &1454318368
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1810,6 +1808,28 @@ MonoBehaviour:
   - {fileID: 11400000, guid: be61d1004aa2d3a44919cf26786363cd, type: 2}
   - {fileID: 11400000, guid: b4eb507010fce664eae543b95267895e, type: 2}
   _startLevelIndex: 0
+--- !u!114 &1454318369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1454318363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1785c3d960d03e14485d32e330ce882b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _passengerPrefab: {fileID: 6345594262487882829, guid: 7207ec4263a669c428c69a759f5d57ba, type: 3}
+  _materialsMap:
+  - Color: 0
+    Material: {fileID: 2100000, guid: 176a1ee793dbb5141817f9d7840b57c0, type: 2}
+  - Color: 1
+    Material: {fileID: 2100000, guid: bae8cff2ce5379e4b80c9b3379b7f138, type: 2}
+  - Color: 2
+    Material: {fileID: 2100000, guid: d6a2125bf131e85478cd4126cec6d98a, type: 2}
+  - Color: 3
+    Material: {fileID: 2100000, guid: 419aafa37f496b749b34de2a39c2dc5e, type: 2}
 --- !u!1 &1467545984
 GameObject:
   m_ObjectHideFlags: 0
@@ -2303,6 +2323,8 @@ MonoBehaviour:
   _targetColor: 1
   _capacity: 4
   _departureDirection: 2
+  _departureDistance: 25
+  _departureDuration: 2
   _currentPassengers:
   - {fileID: 0}
   - {fileID: 0}
