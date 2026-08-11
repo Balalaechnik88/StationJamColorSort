@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace StationJam.Entities
 {
@@ -9,7 +10,9 @@ namespace StationJam.Entities
         private const float IdleTransitionDuration = 0.2f;
 
         [Header("Passenger Data")]
-        public ColorType PassengerColor;
+        [FormerlySerializedAs("PassengerColor")]
+        [SerializeField]
+        private ColorType _passengerColor;
 
         [Header("Visuals")]
         [SerializeField]
@@ -17,6 +20,9 @@ namespace StationJam.Entities
 
         [SerializeField]
         private SkinnedMeshRenderer _meshRenderer;
+
+        public ColorType PassengerColor =>
+            _passengerColor;
 
         public Vector3 SeatPosition { get; set; }
 
@@ -32,14 +38,16 @@ namespace StationJam.Entities
             ColorType color,
             Material material)
         {
-            PassengerColor = color;
+            _passengerColor = color;
 
-            if (_meshRenderer != null &&
-                material != null)
+            if (_meshRenderer == null ||
+                material == null)
             {
-                _meshRenderer.material =
-                    material;
+                return;
             }
+
+            _meshRenderer.sharedMaterial =
+                material;
         }
 
         public void PlayJump()
@@ -83,11 +91,6 @@ namespace StationJam.Entities
                 return;
             }
 
-            /*
-             * Перемещением пассажира управляет SwapEngine через DOTween.
-             * Animator должен отвечать только за движение скелета,
-             * а не за изменение Transform объекта.
-             */
             _animator.applyRootMotion = false;
         }
 
