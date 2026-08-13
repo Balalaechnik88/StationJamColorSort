@@ -99,6 +99,9 @@ namespace StationJam.Core
             _levelFlowDriver.Initialize(
                 wagonsInLevel);
 
+            CheckInitialWagonsCompletion(
+                wagonsInLevel);
+
             Debug.Log(
                 $"[LevelBuilder] Уровень " +
                 $"{levelData.LevelNumber} " +
@@ -225,6 +228,18 @@ namespace StationJam.Core
             }
 
             return passenger;
+        }
+
+        private void CheckInitialWagonsCompletion(
+            IReadOnlyList<TrainWagon> wagons)
+        {
+            foreach (TrainWagon wagon in wagons)
+            {
+                if (wagon != null)
+                {
+                    wagon.CheckCompletion();
+                }
+            }
         }
 
         private void ClearBuiltLevel()
