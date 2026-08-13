@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
@@ -63,51 +64,79 @@ namespace StationJam.Core
 
             ClearBuiltLevel();
 
-            SetActiveWagonsCount(
-                levelData.Wagons.Count);
+            bool buildCompleted =
+                false;
 
-            Passenger initialBufferPassenger =
-                CreatePassenger(
-                    levelData.InitialBufferColor,
-                    _transitSlot
-                        .GetPosition()
-                        .position);
-
-            if (initialBufferPassenger == null)
+            try
             {
+                SetActiveWagonsCount(
+                    levelData.Wagons.Count);
+
+                Passenger initialBufferPassenger =
+                    CreatePassenger(
+                        levelData.InitialBufferColor,
+                        _transitSlot
+                            .GetPosition()
+                            .position);
+
+                if (initialBufferPassenger == null)
+                {
+                    LogBuildError(
+                        "Не удалось создать пассажира " +
+                        "для транзитного слота.");
+
+                    return false;
+                }
+
+                _swapEngine.InitializeBuffer(
+                    initialBufferPassenger);
+
+                List<TrainWagon> wagonsInLevel =
+                    BuildWagons(levelData);
+
+                if (wagonsInLevel == null)
+                {
+                    LogBuildError(
+                        "Не удалось полностью построить " +
+                        "вагоны уровня.");
+
+                    return false;
+                }
+
+                _levelFlowDriver.Initialize(
+                    wagonsInLevel);
+
+                CheckInitialWagonsCompletion(
+                    wagonsInLevel);
+
+                buildCompleted =
+                    true;
+
+                Debug.Log(
+                    $"[LevelBuilder] Уровень " +
+                    $"{levelData.LevelNumber} " +
+                    "успешно создан.");
+
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(
+                    exception);
+
                 LogBuildError(
-                    "Не удалось создать пассажира " +
-                    "для транзитного слота.");
+                    "Во время построения уровня " +
+                    "возникло непредвиденное исключение.");
 
                 return false;
             }
-
-            _swapEngine.InitializeBuffer(
-                initialBufferPassenger);
-
-            List<TrainWagon> wagonsInLevel =
-                BuildWagons(levelData);
-
-            if (wagonsInLevel == null)
+            finally
             {
-                LogBuildError(
-                    "Не удалось построить вагоны уровня.");
-
-                return false;
+                if (!buildCompleted)
+                {
+                    RollbackFailedBuild();
+                }
             }
-
-            _levelFlowDriver.Initialize(
-                wagonsInLevel);
-
-            CheckInitialWagonsCompletion(
-                wagonsInLevel);
-
-            Debug.Log(
-                $"[LevelBuilder] Уровень " +
-                $"{levelData.LevelNumber} " +
-                "успешно создан.");
-
-            return true;
         }
 
         private List<TrainWagon> BuildWagons(
@@ -248,6 +277,32 @@ namespace StationJam.Core
 
             _swapEngine.InitializeBuffer(null);
 
+            ClearSpawnedPassengers();
+
+            DisableSceneWagons();
+        }
+
+        private void RollbackFailedBuild()
+        {
+            Debug.LogWarning(
+                "[LevelBuilder] Построение уровня " +
+                "не завершено. Выполняется откат.");
+
+            _levelFlowDriver.ResetLevel();
+
+            _swapEngine.InitializeBuffer(null);
+
+            ClearSpawnedPassengers();
+
+            DisableSceneWagons();
+
+            Debug.LogWarning(
+                "[LevelBuilder] Частично построенный " +
+                "уровень полностью очищен.");
+        }
+
+        private void ClearSpawnedPassengers()
+        {
             foreach (Passenger passenger
                      in _spawnedPassengers)
             {
@@ -261,11 +316,15 @@ namespace StationJam.Core
                 passenger.gameObject.SetActive(
                     false);
 
-                Destroy(passenger.gameObject);
+                Destroy(
+                    passenger.gameObject);
             }
 
             _spawnedPassengers.Clear();
+        }
 
+        private void DisableSceneWagons()
+        {
             foreach (TrainWagon wagon
                      in _sceneWagons)
             {
