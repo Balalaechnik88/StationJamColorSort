@@ -44,7 +44,10 @@ namespace StationJam.Entities
         private List<Passenger> _currentPassengers =
             new List<Passenger>();
 
-        private bool _hasDeparted;
+        [SerializeField]
+        private WagonState _currentState =
+            WagonState.Active;
+
         private bool _initialTransformCached;
         private Vector3 _initialLocalPosition;
         private Quaternion _initialLocalRotation;
@@ -60,8 +63,15 @@ namespace StationJam.Entities
         public int Capacity =>
             _capacity;
 
+        public WagonState CurrentState =>
+            _currentState;
+
         public bool IsFull =>
             _currentPassengers.Count >= _capacity;
+
+        public bool CanInteract =>
+            _currentState == WagonState.Active &&
+            gameObject.activeInHierarchy;
 
         private void Awake()
         {
@@ -88,7 +98,8 @@ namespace StationJam.Entities
             _capacity = capacity;
 
             _currentPassengers.Clear();
-            _hasDeparted = false;
+
+            SetState(WagonState.Active);
         }
 
         public void DisableForLevel()
@@ -104,7 +115,8 @@ namespace StationJam.Entities
                 _initialLocalRotation;
 
             _currentPassengers.Clear();
-            _hasDeparted = false;
+
+            SetState(WagonState.Departed);
 
             gameObject.SetActive(false);
         }
@@ -113,7 +125,7 @@ namespace StationJam.Entities
             Passenger passenger)
         {
             if (passenger == null ||
-                _hasDeparted ||
+                !CanInteract ||
                 IsFull ||
                 _currentPassengers.Contains(passenger))
             {
@@ -132,7 +144,7 @@ namespace StationJam.Entities
             Passenger passenger)
         {
             if (passenger == null ||
-                _hasDeparted ||
+                !CanInteract ||
                 !_currentPassengers.Contains(passenger))
             {
                 return false;
@@ -152,7 +164,7 @@ namespace StationJam.Entities
         {
             if (outgoingPassenger == null ||
                 incomingPassenger == null ||
-                _hasDeparted)
+                !CanInteract)
             {
                 return false;
             }
@@ -187,15 +199,19 @@ namespace StationJam.Entities
             outgoingPassenger.transform.SetParent(null);
 
             incomingPassenger.CurrentWagon = this;
-            incomingPassenger.SeatPosition = seatPosition;
-            incomingPassenger.transform.SetParent(transform);
+            incomingPassenger.SeatPosition =
+                seatPosition;
+
+            incomingPassenger.transform.SetParent(
+                transform);
 
             return true;
         }
 
         public void CheckCompletion()
         {
-            if (_hasDeparted || !IsFull)
+            if (!CanInteract ||
+                !IsFull)
             {
                 return;
             }
@@ -204,7 +220,8 @@ namespace StationJam.Entities
                      in _currentPassengers)
             {
                 if (passenger == null ||
-                    passenger.PassengerColor != _targetColor)
+                    passenger.PassengerColor !=
+                    _targetColor)
                 {
                     return;
                 }
@@ -215,7 +232,8 @@ namespace StationJam.Entities
 
         private void Depart()
         {
-            _hasDeparted = true;
+            SetState(
+                WagonState.Departing);
 
             Debug.Log(
                 $"[{gameObject.name}] Состав собран. " +
@@ -235,6 +253,9 @@ namespace StationJam.Entities
                 .SetLink(gameObject)
                 .OnComplete(() =>
                 {
+                    SetState(
+                        WagonState.Departed);
+
                     WagonDeparted?.Invoke(this);
 
                     gameObject.SetActive(false);
@@ -276,6 +297,13 @@ namespace StationJam.Entities
                 transform.localRotation;
 
             _initialTransformCached = true;
+        }
+
+        private void SetState(
+            WagonState newState)
+        {
+            _currentState =
+                newState;
         }
     }
 }

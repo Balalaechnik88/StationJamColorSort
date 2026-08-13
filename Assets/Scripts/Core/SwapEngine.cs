@@ -84,6 +84,23 @@ namespace StationJam.Core
                 return;
             }
 
+            TrainWagon clickedPassengerWagon =
+                clickedPassenger.CurrentWagon;
+
+            if (clickedPassengerWagon == null)
+            {
+                Debug.LogWarning(
+                    "[SwapEngine] ¬ыбранный пассажир " +
+                    "не находитс€ в вагоне.");
+
+                return;
+            }
+
+            if (!clickedPassengerWagon.CanInteract)
+            {
+                return;
+            }
+
             if (!_levelFlowDriver.TryStartSwap())
             {
                 return;
@@ -108,12 +125,9 @@ namespace StationJam.Core
             TrainWagon sourceWagon =
                 trainPassenger.CurrentWagon;
 
-            if (sourceWagon == null)
+            if (sourceWagon == null ||
+                !sourceWagon.CanInteract)
             {
-                Debug.LogError(
-                    "[SwapEngine] ѕассажир не находитс€ " +
-                    "в вагоне.");
-
                 _levelFlowDriver.FinishSwap();
 
                 return;
@@ -142,7 +156,8 @@ namespace StationJam.Core
                         JumpCount,
                         _jumpDuration);
 
-            _activeTween = moveTween;
+            _activeTween =
+                moveTween;
 
             moveTween.OnComplete(() =>
             {
@@ -208,12 +223,9 @@ namespace StationJam.Core
             TrainWagon targetWagon =
                 trainPassenger.CurrentWagon;
 
-            if (targetWagon == null)
+            if (targetWagon == null ||
+                !targetWagon.CanInteract)
             {
-                Debug.LogError(
-                    "[SwapEngine] ¬ыбранный пассажир " +
-                    "не находитс€ в вагоне.");
-
                 _levelFlowDriver.FinishSwap();
 
                 return;
@@ -260,7 +272,8 @@ namespace StationJam.Core
                         JumpCount,
                         _jumpDuration));
 
-            _activeTween = swapSequence;
+            _activeTween =
+                swapSequence;
 
             swapSequence.OnComplete(() =>
             {
@@ -349,7 +362,8 @@ namespace StationJam.Core
                 _activeTween.Kill();
             }
 
-            _activeTween = null;
+            _activeTween =
+                null;
         }
 
         private void RestorePassenger(
