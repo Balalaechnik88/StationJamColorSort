@@ -28,20 +28,34 @@ namespace StationJam.Core
         [Min(0f)]
         private float _jumpDuration = 0.5f;
 
+        private Tween _activeTween;
+
+        private void OnDisable()
+        {
+            CancelActiveSwap();
+        }
+
         public void InitializeBuffer(
             Passenger initialPassenger)
         {
+            CancelActiveSwap();
+
             _passengerInBuffer =
                 initialPassenger;
 
-            if (_passengerInBuffer != null &&
-                _transitSlot != null)
+            if (_passengerInBuffer == null ||
+                _transitSlot == null)
             {
-                _passengerInBuffer.SeatPosition =
-                    _transitSlot
-                        .GetPosition()
-                        .position;
+                return;
             }
+
+            Vector3 bufferPosition =
+                _transitSlot
+                    .GetPosition()
+                    .position;
+
+            _passengerInBuffer.SeatPosition =
+                bufferPosition;
         }
 
         public void ProcessSwap(
@@ -50,6 +64,14 @@ namespace StationJam.Core
             if (clickedPassenger == null ||
                 clickedPassenger == _passengerInBuffer)
             {
+                return;
+            }
+
+            if (_transitSlot == null)
+            {
+                Debug.LogError(
+                    "[SwapEngine] TransitSlot не назначен.");
+
                 return;
             }
 
@@ -69,14 +91,15 @@ namespace StationJam.Core
 
             if (_passengerInBuffer == null)
             {
-                MoveToBuffer(clickedPassenger);
+                MoveToBuffer(
+                    clickedPassenger);
+
+                return;
             }
-            else
-            {
-                SwapPassengers(
-                    clickedPassenger,
-                    _passengerInBuffer);
-            }
+
+            SwapPassengers(
+                clickedPassenger,
+                _passengerInBuffer);
         }
 
         private void MoveToBuffer(
@@ -85,31 +108,31 @@ namespace StationJam.Core
             TrainWagon sourceWagon =
                 trainPassenger.CurrentWagon;
 
-            Vector3 targetBufferPosition =
-                _transitSlot
-                    .GetPosition()
-                    .position;
-
-            trainPassenger.SeatPosition =
-                trainPassenger.transform.position;
-
-            if (sourceWagon != null &&
-                !sourceWagon.TryRemovePassenger(
-                    trainPassenger))
+            if (sourceWagon == null)
             {
                 Debug.LogError(
-                    "[SwapEngine] Не удалось удалить " +
-                    "пассажира из исходного вагона.");
+                    "[SwapEngine] Пассажир не находится " +
+                    "в вагоне.");
 
                 _levelFlowDriver.FinishSwap();
 
                 return;
             }
 
-            _passengerInBuffer =
-                trainPassenger;
+            Vector3 startPosition =
+                trainPassenger.transform.position;
+
+            Vector3 targetBufferPosition =
+                _transitSlot
+                    .GetPosition()
+                    .position;
+
+            trainPassenger.SeatPosition =
+                startPosition;
 
             trainPassenger.PlayJump();
+
+            bool operationResolved = false;
 
             Tween moveTween =
                 trainPassenger.transform
@@ -117,23 +140,64 @@ namespace StationJam.Core
                         targetBufferPosition,
                         _jumpPower,
                         JumpCount,
-                        _jumpDuration)
-                    .SetLink(
-                        trainPassenger.gameObject);
+                        _jumpDuration);
+
+            _activeTween = moveTween;
 
             moveTween.OnComplete(() =>
             {
+                bool passengerRemoved =
+                    sourceWagon.TryRemovePassenger(
+                        trainPassenger);
+
+                if (!passengerRemoved)
+                {
+                    Debug.LogError(
+                        "[SwapEngine] Не удалось завершить " +
+                        "перемещение пассажира в буфер.");
+
+                    RestorePassenger(
+                        trainPassenger,
+                        startPosition);
+
+                    operationResolved = true;
+
+                    _levelFlowDriver.FinishSwap();
+
+                    return;
+                }
+
                 trainPassenger.transform.position =
                     targetBufferPosition;
 
+                trainPassenger.SeatPosition =
+                    targetBufferPosition;
+
+                _passengerInBuffer =
+                    trainPassenger;
+
                 trainPassenger.PlayIdle();
+
+                operationResolved = true;
 
                 _levelFlowDriver.FinishSwap();
             });
 
             moveTween.OnKill(() =>
             {
-                _levelFlowDriver.FinishSwap();
+                if (!operationResolved)
+                {
+                    RestorePassenger(
+                        trainPassenger,
+                        startPosition);
+
+                    _levelFlowDriver.FinishSwap();
+                }
+
+                if (_activeTween == moveTween)
+                {
+                    _activeTween = null;
+                }
             });
         }
 
@@ -155,8 +219,14 @@ namespace StationJam.Core
                 return;
             }
 
-            Vector3 targetTrainSeat =
+            Vector3 trainStartPosition =
                 trainPassenger.transform.position;
+
+            Vector3 bufferStartPosition =
+                bufferPassenger.transform.position;
+
+            Vector3 targetTrainSeat =
+                trainStartPosition;
 
             Vector3 targetBufferPosition =
                 _transitSlot
@@ -166,41 +236,10 @@ namespace StationJam.Core
             trainPassenger.SeatPosition =
                 targetTrainSeat;
 
-            bool removedFromWagon =
-                targetWagon.TryRemovePassenger(
-                    trainPassenger);
-
-            if (!removedFromWagon)
-            {
-                Debug.LogError(
-                    "[SwapEngine] Не удалось удалить " +
-                    "выбранного пассажира из вагона.");
-
-                _levelFlowDriver.FinishSwap();
-
-                return;
-            }
-
-            bool addedToWagon =
-                targetWagon.TryAddPassenger(
-                    bufferPassenger);
-
-            if (!addedToWagon)
-            {
-                Debug.LogError(
-                    "[SwapEngine] Не удалось добавить " +
-                    "пассажира из буфера в вагон.");
-
-                targetWagon.TryAddPassenger(
-                    trainPassenger);
-
-                _levelFlowDriver.FinishSwap();
-
-                return;
-            }
-
             trainPassenger.PlayJump();
             bufferPassenger.PlayJump();
+
+            bool operationResolved = false;
 
             Sequence swapSequence =
                 DOTween.Sequence();
@@ -211,9 +250,7 @@ namespace StationJam.Core
                         targetBufferPosition,
                         _jumpPower,
                         JumpCount,
-                        _jumpDuration)
-                    .SetLink(
-                        trainPassenger.gameObject));
+                        _jumpDuration));
 
             swapSequence.Join(
                 bufferPassenger.transform
@@ -221,23 +258,57 @@ namespace StationJam.Core
                         targetTrainSeat,
                         _jumpPower,
                         JumpCount,
-                        _jumpDuration)
-                    .SetLink(
-                        bufferPassenger.gameObject));
+                        _jumpDuration));
+
+            _activeTween = swapSequence;
 
             swapSequence.OnComplete(() =>
             {
+                bool passengersReplaced =
+                    targetWagon.TryReplacePassenger(
+                        trainPassenger,
+                        bufferPassenger);
+
+                if (!passengersReplaced)
+                {
+                    Debug.LogError(
+                        "[SwapEngine] Не удалось завершить " +
+                        "обмен пассажиров.");
+
+                    RestorePassenger(
+                        trainPassenger,
+                        trainStartPosition);
+
+                    RestorePassenger(
+                        bufferPassenger,
+                        bufferStartPosition);
+
+                    operationResolved = true;
+
+                    _levelFlowDriver.FinishSwap();
+
+                    return;
+                }
+
                 trainPassenger.transform.position =
+                    targetBufferPosition;
+
+                trainPassenger.SeatPosition =
                     targetBufferPosition;
 
                 bufferPassenger.transform.position =
                     targetTrainSeat;
 
-                trainPassenger.PlayIdle();
-                bufferPassenger.PlayIdle();
+                bufferPassenger.SeatPosition =
+                    targetTrainSeat;
 
                 _passengerInBuffer =
                     trainPassenger;
+
+                trainPassenger.PlayIdle();
+                bufferPassenger.PlayIdle();
+
+                operationResolved = true;
 
                 _levelFlowDriver.FinishSwap();
 
@@ -246,8 +317,54 @@ namespace StationJam.Core
 
             swapSequence.OnKill(() =>
             {
-                _levelFlowDriver.FinishSwap();
+                if (!operationResolved)
+                {
+                    RestorePassenger(
+                        trainPassenger,
+                        trainStartPosition);
+
+                    RestorePassenger(
+                        bufferPassenger,
+                        bufferStartPosition);
+
+                    _levelFlowDriver.FinishSwap();
+                }
+
+                if (_activeTween == swapSequence)
+                {
+                    _activeTween = null;
+                }
             });
+        }
+
+        private void CancelActiveSwap()
+        {
+            if (_activeTween == null)
+            {
+                return;
+            }
+
+            if (_activeTween.IsActive())
+            {
+                _activeTween.Kill();
+            }
+
+            _activeTween = null;
+        }
+
+        private void RestorePassenger(
+            Passenger passenger,
+            Vector3 position)
+        {
+            if (passenger == null)
+            {
+                return;
+            }
+
+            passenger.transform.position =
+                position;
+
+            passenger.PlayIdle();
         }
     }
 }

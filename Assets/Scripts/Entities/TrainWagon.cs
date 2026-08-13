@@ -146,6 +146,53 @@ namespace StationJam.Entities
             return true;
         }
 
+        public bool TryReplacePassenger(
+            Passenger outgoingPassenger,
+            Passenger incomingPassenger)
+        {
+            if (outgoingPassenger == null ||
+                incomingPassenger == null ||
+                _hasDeparted)
+            {
+                return false;
+            }
+
+            int passengerIndex =
+                _currentPassengers.IndexOf(
+                    outgoingPassenger);
+
+            if (passengerIndex < 0)
+            {
+                return false;
+            }
+
+            if (_currentPassengers.Contains(
+                    incomingPassenger))
+            {
+                return false;
+            }
+
+            if (incomingPassenger.CurrentWagon != null)
+            {
+                return false;
+            }
+
+            _currentPassengers[passengerIndex] =
+                incomingPassenger;
+
+            Vector3 seatPosition =
+                outgoingPassenger.SeatPosition;
+
+            outgoingPassenger.CurrentWagon = null;
+            outgoingPassenger.transform.SetParent(null);
+
+            incomingPassenger.CurrentWagon = this;
+            incomingPassenger.SeatPosition = seatPosition;
+            incomingPassenger.transform.SetParent(transform);
+
+            return true;
+        }
+
         public void CheckCompletion()
         {
             if (_hasDeparted || !IsFull)
