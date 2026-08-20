@@ -12,9 +12,18 @@ namespace StationJam.UI
         [SerializeField]
         private LevelSequence _levelSequence;
 
-        [Header("UI Panels")]
+        [Header("Victory UI")]
         [SerializeField]
         private GameObject _victoryPanel;
+
+        [SerializeField]
+        private GameObject _levelCompletedView;
+
+        [SerializeField]
+        private GameObject _nextLevelButton;
+
+        [SerializeField]
+        private GameObject _sequenceCompletedView;
 
         private void Awake()
         {
@@ -60,6 +69,15 @@ namespace StationJam.UI
                 return;
             }
 
+            if (!_levelSequence.HasNextLevel)
+            {
+                Debug.LogWarning(
+                    "[VictoryScreen] Следующий уровень " +
+                    "недоступен.");
+
+                return;
+            }
+
             _levelSequence.LoadNextLevel();
         }
 
@@ -79,18 +97,54 @@ namespace StationJam.UI
             }
         }
 
+        private void UpdateCompletionView()
+        {
+            if (_levelSequence == null)
+            {
+                Debug.LogError(
+                    "[VictoryScreen] LevelSequence " +
+                    "не назначен.");
+
+                return;
+            }
+
+            bool hasNextLevel =
+                _levelSequence.HasNextLevel;
+
+            if (_levelCompletedView != null)
+            {
+                _levelCompletedView.SetActive(
+                    hasNextLevel);
+            }
+
+            if (_nextLevelButton != null)
+            {
+                _nextLevelButton.SetActive(
+                    hasNextLevel);
+            }
+
+            if (_sequenceCompletedView != null)
+            {
+                _sequenceCompletedView.SetActive(
+                    !hasNextLevel);
+            }
+        }
+
         private void OnLevelCompleted()
         {
+            UpdateCompletionView();
             ShowVictory();
         }
 
         private void OnLevelStateChanged(
             LevelState levelState)
         {
-            if (levelState != LevelState.Completed)
+            if (levelState == LevelState.Completed)
             {
-                HideVictory();
+                return;
             }
+
+            HideVictory();
         }
     }
 }
