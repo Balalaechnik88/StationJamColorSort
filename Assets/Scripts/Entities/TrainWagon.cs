@@ -63,6 +63,9 @@ namespace StationJam.Entities
         public int Capacity =>
             _capacity;
 
+        public DepartDirection DepartureDirection =>
+            _departureDirection;
+
         public WagonState CurrentState =>
             _currentState;
 
@@ -82,6 +85,17 @@ namespace StationJam.Entities
             ColorType targetColor,
             int capacity)
         {
+            InitializeData(
+                targetColor,
+                capacity,
+                _departureDirection);
+        }
+
+        public void InitializeData(
+            ColorType targetColor,
+            int capacity,
+            DepartDirection departureDirection)
+        {
             CacheInitialTransform();
 
             transform.DOKill();
@@ -96,10 +110,13 @@ namespace StationJam.Entities
 
             _targetColor = targetColor;
             _capacity = capacity;
+            _departureDirection =
+                departureDirection;
 
             _currentPassengers.Clear();
 
-            SetState(WagonState.Active);
+            SetState(
+                WagonState.Active);
         }
 
         public void DisableForLevel()
@@ -116,7 +133,8 @@ namespace StationJam.Entities
 
             _currentPassengers.Clear();
 
-            SetState(WagonState.Departed);
+            SetState(
+                WagonState.Departed);
 
             gameObject.SetActive(false);
         }
@@ -132,10 +150,14 @@ namespace StationJam.Entities
                 return false;
             }
 
-            _currentPassengers.Add(passenger);
+            _currentPassengers.Add(
+                passenger);
 
-            passenger.CurrentWagon = this;
-            passenger.transform.SetParent(transform);
+            passenger.CurrentWagon =
+                this;
+
+            passenger.transform.SetParent(
+                transform);
 
             return true;
         }
@@ -150,10 +172,14 @@ namespace StationJam.Entities
                 return false;
             }
 
-            _currentPassengers.Remove(passenger);
+            _currentPassengers.Remove(
+                passenger);
 
-            passenger.CurrentWagon = null;
-            passenger.transform.SetParent(null);
+            passenger.CurrentWagon =
+                null;
+
+            passenger.transform.SetParent(
+                null);
 
             return true;
         }
@@ -195,10 +221,15 @@ namespace StationJam.Entities
             Vector3 seatPosition =
                 outgoingPassenger.SeatPosition;
 
-            outgoingPassenger.CurrentWagon = null;
-            outgoingPassenger.transform.SetParent(null);
+            outgoingPassenger.CurrentWagon =
+                null;
 
-            incomingPassenger.CurrentWagon = this;
+            outgoingPassenger.transform.SetParent(
+                null);
+
+            incomingPassenger.CurrentWagon =
+                this;
+
             incomingPassenger.SeatPosition =
                 seatPosition;
 
@@ -256,9 +287,11 @@ namespace StationJam.Entities
                     SetState(
                         WagonState.Departed);
 
-                    WagonDeparted?.Invoke(this);
+                    WagonDeparted?.Invoke(
+                        this);
 
-                    gameObject.SetActive(false);
+                    gameObject.SetActive(
+                        false);
                 });
         }
 
@@ -296,7 +329,8 @@ namespace StationJam.Entities
             _initialLocalRotation =
                 transform.localRotation;
 
-            _initialTransformCached = true;
+            _initialTransformCached =
+                true;
         }
 
         private void SetState(

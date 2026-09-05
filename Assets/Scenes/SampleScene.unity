@@ -2174,14 +2174,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _transitSlot: {fileID: 91172911}
-  _sceneWagons:
+  _swapEngine: {fileID: 1454318364}
+  _levelFlowDriver: {fileID: 1454318366}
+  _levelLayout: {fileID: 229639695}
+  _passengerFactory: {fileID: 1454318369}
+  _wagonFactory: {fileID: 1454318370}
+  _legacySceneWagons:
   - {fileID: 357458933}
   - {fileID: 406494691}
   - {fileID: 1860039716}
   - {fileID: 417414643}
-  _swapEngine: {fileID: 1454318364}
-  _levelFlowDriver: {fileID: 1454318366}
-  _passengerFactory: {fileID: 1454318369}
 --- !u!114 &1454318368
 MonoBehaviour:
   m_ObjectHideFlags: 0

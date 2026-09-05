@@ -19,6 +19,7 @@ namespace StationJam.Factories
         public TrainWagon Create(
             ColorType targetColor,
             int capacity,
+            TrainWagon.DepartDirection departureDirection,
             Vector3 position,
             Quaternion rotation,
             Transform parent)
@@ -26,7 +27,8 @@ namespace StationJam.Factories
             if (_wagonPrefab == null)
             {
                 Debug.LogError(
-                    "[WagonFactory] Wagon prefab не назначен.");
+                    "[WagonFactory] Wagon prefab " +
+                    "не назначен.");
 
                 return null;
             }
@@ -72,7 +74,8 @@ namespace StationJam.Factories
 
             wagon.InitializeData(
                 targetColor,
-                capacity);
+                capacity,
+                departureDirection);
 
             return wagon;
         }
@@ -82,7 +85,16 @@ namespace StationJam.Factories
             if (_wagonPrefab == null)
             {
                 return
-                    "WagonFactory: prefab вагона не назначен.";
+                    "WagonFactory: prefab вагона " +
+                    "не назначен.";
+            }
+
+            if (_wagonPrefab.SeatPoints == null ||
+                _wagonPrefab.SeatPoints.Length == 0)
+            {
+                return
+                    "WagonFactory: в prefab вагона " +
+                    "не назначены Seat Points.";
             }
 
             if (_materialsMap == null ||
@@ -105,6 +117,20 @@ namespace StationJam.Factories
             }
 
             return string.Empty;
+        }
+
+        public bool CanFitCapacity(
+            int capacity)
+        {
+            if (_wagonPrefab == null ||
+                _wagonPrefab.SeatPoints == null)
+            {
+                return false;
+            }
+
+            return capacity > 0 &&
+                   capacity <=
+                   _wagonPrefab.SeatPoints.Length;
         }
 
         private Material GetMaterialByColor(
