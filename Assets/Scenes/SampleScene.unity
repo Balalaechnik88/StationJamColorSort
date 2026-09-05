@@ -411,11 +411,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9c975ef93bdc624fad08fe3b55e0a3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _wagonSpawnPoints:
-  - {fileID: 1777694164}
-  - {fileID: 108885050}
-  - {fileID: 2084121260}
-  - {fileID: 10055947}
+  _wagonSlots:
+  - _spawnPoint: {fileID: 1777694164}
+    _departureDirection: 2
+  - _spawnPoint: {fileID: 108885050}
+    _departureDirection: 3
+  - _spawnPoint: {fileID: 2084121260}
+    _departureDirection: 2
+  - _spawnPoint: {fileID: 10055947}
+    _departureDirection: 3
 --- !u!1 &297491724
 GameObject:
   m_ObjectHideFlags: 0

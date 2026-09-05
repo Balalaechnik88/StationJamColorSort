@@ -5,31 +5,31 @@ namespace StationJam.Core
 {
     public class LevelLayout : MonoBehaviour
     {
-        [Header("Wagon Spawn Points")]
+        [Header("Wagon Layout Slots")]
         [SerializeField]
-        private List<Transform> _wagonSpawnPoints =
-            new List<Transform>();
+        private List<WagonLayoutSlot> _wagonSlots =
+            new List<WagonLayoutSlot>();
 
-        public int SpawnPointsCount =>
-            _wagonSpawnPoints != null
-                ? _wagonSpawnPoints.Count
+        public int SlotsCount =>
+            _wagonSlots != null
+                ? _wagonSlots.Count
                 : 0;
 
-        public Transform GetSpawnPoint(
+        public WagonLayoutSlot GetSlot(
             int wagonIndex)
         {
-            if (_wagonSpawnPoints == null)
+            if (_wagonSlots == null)
             {
                 return null;
             }
 
             if (wagonIndex < 0 ||
-                wagonIndex >= _wagonSpawnPoints.Count)
+                wagonIndex >= _wagonSlots.Count)
             {
                 return null;
             }
 
-            return _wagonSpawnPoints[wagonIndex];
+            return _wagonSlots[wagonIndex];
         }
 
         public string GetConfigurationError(
@@ -42,35 +42,43 @@ namespace StationJam.Core
                     "должно быть больше нуля.";
             }
 
-            if (_wagonSpawnPoints == null ||
-                _wagonSpawnPoints.Count == 0)
+            if (_wagonSlots == null ||
+                _wagonSlots.Count == 0)
             {
                 return
-                    "LevelLayout: точки размещения " +
+                    "LevelLayout: слоты размещения " +
                     "вагонов не назначены.";
             }
 
             if (requiredWagonsCount >
-                _wagonSpawnPoints.Count)
+                _wagonSlots.Count)
             {
                 return
                     $"LevelLayout: требуется " +
                     $"{requiredWagonsCount} вагонов, " +
                     $"но доступно только " +
-                    $"{_wagonSpawnPoints.Count} " +
-                    "точек размещения.";
+                    $"{_wagonSlots.Count} слотов.";
             }
 
-            for (int spawnPointIndex = 0;
-                 spawnPointIndex < requiredWagonsCount;
-                 spawnPointIndex++)
+            for (int slotIndex = 0;
+                 slotIndex < requiredWagonsCount;
+                 slotIndex++)
             {
-                if (_wagonSpawnPoints[
-                        spawnPointIndex] == null)
+                WagonLayoutSlot slot =
+                    _wagonSlots[slotIndex];
+
+                if (slot == null)
+                {
+                    return
+                        $"LevelLayout: слот вагона " +
+                        $"{slotIndex} не настроен.";
+                }
+
+                if (slot.SpawnPoint == null)
                 {
                     return
                         $"LevelLayout: точка размещения " +
-                        $"{spawnPointIndex} не назначена.";
+                        $"{slotIndex} не назначена.";
                 }
             }
 
