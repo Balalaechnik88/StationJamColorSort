@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using UnityEditor;
 using UnityEngine;
 using StationJam.Core;
 using StationJam.Data;
@@ -13,12 +12,6 @@ namespace StationJam.Tests.EditMode
         private LevelValidator _validator;
         private LevelData _levelData;
 
-        private GameObject _wagonGameObject;
-        private GameObject _seatGameObject;
-
-        private TrainWagon _wagon;
-        private Material _material;
-
         [SetUp]
         public void SetUp()
         {
@@ -29,63 +22,19 @@ namespace StationJam.Tests.EditMode
                 ScriptableObject.CreateInstance<
                     LevelData>();
 
-            _levelData.LevelNumber = 1;
+            _levelData.LevelNumber =
+                1;
 
             _levelData.InitialBufferColor =
                 ColorType.Red;
 
             _levelData.Wagons =
                 new List<WagonSetup>();
-
-            _wagonGameObject =
-                new GameObject(
-                    "TestWagon");
-
-            _wagon =
-                _wagonGameObject.AddComponent<
-                    TrainWagon>();
-
-            _seatGameObject =
-                new GameObject(
-                    "SeatPoint");
-
-            _seatGameObject.transform.SetParent(
-                _wagonGameObject.transform);
-
-            AssignSeatPoints(
-                _wagon,
-                new[]
-                {
-                    _seatGameObject.transform
-                });
-
-            Shader shader =
-                Shader.Find(
-                    "Sprites/Default");
-
-            Assert.IsNotNull(
-                shader,
-                "Тестовый Shader не найден.");
-
-            _material =
-                new Material(shader);
         }
 
         [TearDown]
         public void TearDown()
         {
-            if (_material != null)
-            {
-                Object.DestroyImmediate(
-                    _material);
-            }
-
-            if (_wagonGameObject != null)
-            {
-                Object.DestroyImmediate(
-                    _wagonGameObject);
-            }
-
             if (_levelData != null)
             {
                 Object.DestroyImmediate(
@@ -98,9 +47,7 @@ namespace StationJam.Tests.EditMode
         {
             string validationError =
                 _validator.GetValidationError(
-                    null,
-                    CreateSceneWagons(),
-                    CreateMaterialsMap());
+                    null);
 
             Assert.AreEqual(
                 "Передан пустой LevelData.",
@@ -112,9 +59,7 @@ namespace StationJam.Tests.EditMode
         {
             string validationError =
                 _validator.GetValidationError(
-                    _levelData,
-                    CreateSceneWagons(),
-                    CreateMaterialsMap());
+                    _levelData);
 
             Assert.AreEqual(
                 "В конфигурации уровня отсутствуют вагоны.",
@@ -124,29 +69,25 @@ namespace StationJam.Tests.EditMode
         [Test]
         public void GetValidationError_WhenPassengerCountDoesNotMatchCapacity_ReturnsError()
         {
-            WagonSetup wagonSetup =
+            _levelData.Wagons.Add(
                 new WagonSetup
                 {
                     TargetColor =
                         ColorType.Red,
 
-                    Capacity = 2,
+                    Capacity =
+                        2,
 
                     StartingPassengers =
                         new List<ColorType>
                         {
                             ColorType.Red
                         }
-                };
-
-            _levelData.Wagons.Add(
-                wagonSetup);
+                });
 
             string validationError =
                 _validator.GetValidationError(
-                    _levelData,
-                    CreateSceneWagons(),
-                    CreateMaterialsMap());
+                    _levelData);
 
             Assert.AreEqual(
                 "Вагон 0 имеет вместимость 2, " +
@@ -156,94 +97,90 @@ namespace StationJam.Tests.EditMode
         }
 
         [Test]
-        public void GetValidationError_WhenConfigurationIsValid_ReturnsEmptyString()
+        public void GetValidationError_WhenCapacityIsZero_ReturnsError()
         {
-            WagonSetup wagonSetup =
+            _levelData.Wagons.Add(
                 new WagonSetup
                 {
                     TargetColor =
                         ColorType.Red,
 
-                    Capacity = 1,
+                    Capacity =
+                        0,
+
+                    StartingPassengers =
+                        new List<ColorType>()
+                });
+
+            string validationError =
+                _validator.GetValidationError(
+                    _levelData);
+
+            Assert.AreEqual(
+                "Вместимость вагона 0 должна быть " +
+                "больше нуля.",
+                validationError);
+        }
+
+        [Test]
+        public void GetValidationError_WhenRequiredColorIsMissing_ReturnsError()
+        {
+            _levelData.InitialBufferColor =
+                ColorType.Blue;
+
+            _levelData.Wagons.Add(
+                new WagonSetup
+                {
+                    TargetColor =
+                        ColorType.Red,
+
+                    Capacity =
+                        2,
+
+                    StartingPassengers =
+                        new List<ColorType>
+                        {
+                            ColorType.Blue,
+                            ColorType.Blue
+                        }
+                });
+
+            string validationError =
+                _validator.GetValidationError(
+                    _levelData);
+
+            Assert.AreEqual(
+                "Недостаточно пассажиров цвета Red. " +
+                "Нужно 2, доступно 0.",
+                validationError);
+        }
+
+        [Test]
+        public void GetValidationError_WhenConfigurationIsValid_ReturnsEmptyString()
+        {
+            _levelData.Wagons.Add(
+                new WagonSetup
+                {
+                    TargetColor =
+                        ColorType.Red,
+
+                    Capacity =
+                        1,
 
                     StartingPassengers =
                         new List<ColorType>
                         {
                             ColorType.Red
                         }
-                };
-
-            _levelData.Wagons.Add(
-                wagonSetup);
+                });
 
             string validationError =
                 _validator.GetValidationError(
-                    _levelData,
-                    CreateSceneWagons(),
-                    CreateMaterialsMap());
+                    _levelData);
 
             Assert.AreEqual(
                 string.Empty,
                 validationError);
-        }
-
-        private List<TrainWagon> CreateSceneWagons()
-        {
-            return new List<TrainWagon>
-            {
-                _wagon
-            };
-        }
-
-        private List<ColorMaterialMapping> CreateMaterialsMap()
-        {
-            return new List<ColorMaterialMapping>
-            {
-                new ColorMaterialMapping
-                {
-                    Color =
-                        ColorType.Red,
-
-                    Material =
-                        _material
-                }
-            };
-        }
-
-        private void AssignSeatPoints(
-            TrainWagon wagon,
-            IReadOnlyList<Transform> seatPoints)
-        {
-            SerializedObject serializedWagon =
-                new SerializedObject(wagon);
-
-            SerializedProperty seatPointsProperty =
-                serializedWagon.FindProperty(
-                    "_seatPoints");
-
-            Assert.IsNotNull(
-                seatPointsProperty,
-                "Поле _seatPoints не найдено " +
-                "в TrainWagon.");
-
-            seatPointsProperty.arraySize =
-                seatPoints.Count;
-
-            for (int seatIndex = 0;
-                 seatIndex < seatPoints.Count;
-                 seatIndex++)
-            {
-                SerializedProperty seatProperty =
-                    seatPointsProperty
-                        .GetArrayElementAtIndex(
-                            seatIndex);
-
-                seatProperty.objectReferenceValue =
-                    seatPoints[seatIndex];
-            }
-
-            serializedWagon
-                .ApplyModifiedPropertiesWithoutUndo();
         }
     }
 }

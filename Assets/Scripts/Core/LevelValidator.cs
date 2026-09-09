@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 using StationJam.Data;
 using StationJam.Entities;
 
@@ -8,25 +7,12 @@ namespace StationJam.Core
     public sealed class LevelValidator
     {
         public string GetValidationError(
-            LevelData levelData,
-            IReadOnlyList<TrainWagon> sceneWagons,
-            IReadOnlyList<ColorMaterialMapping> materialsMap)
+            LevelData levelData)
         {
             if (levelData == null)
             {
-                return "Передан пустой LevelData.";
-            }
-
-            if (sceneWagons == null ||
-                sceneWagons.Count == 0)
-            {
-                return "Список вагонов сцены пуст.";
-            }
-
-            if (materialsMap == null ||
-                materialsMap.Count == 0)
-            {
-                return "Список материалов цветов пуст.";
+                return
+                    "Передан пустой LevelData.";
             }
 
             if (levelData.Wagons == null ||
@@ -34,25 +20,6 @@ namespace StationJam.Core
             {
                 return
                     "В конфигурации уровня отсутствуют вагоны.";
-            }
-
-            if (levelData.Wagons.Count >
-                sceneWagons.Count)
-            {
-                return
-                    $"В LevelData указано " +
-                    $"{levelData.Wagons.Count} вагонов, " +
-                    $"но на сцене доступно только " +
-                    $"{sceneWagons.Count}.";
-            }
-
-            if (!HasMaterialForColor(
-                    levelData.InitialBufferColor,
-                    materialsMap))
-            {
-                return
-                    $"Не назначен материал для цвета " +
-                    $"{levelData.InitialBufferColor}.";
             }
 
             Dictionary<ColorType, int> availablePassengers =
@@ -71,19 +38,19 @@ namespace StationJam.Core
                  wagonIndex++)
             {
                 WagonSetup setup =
-                    levelData.Wagons[wagonIndex];
+                    levelData.Wagons[
+                        wagonIndex];
 
                 string wagonValidationError =
                     GetWagonValidationError(
                         setup,
-                        sceneWagons[wagonIndex],
-                        wagonIndex,
-                        materialsMap);
+                        wagonIndex);
 
                 if (!string.IsNullOrEmpty(
                         wagonValidationError))
                 {
-                    return wagonValidationError;
+                    return
+                        wagonValidationError;
                 }
 
                 AddColorCount(
@@ -101,16 +68,15 @@ namespace StationJam.Core
                 }
             }
 
-            return GetPassengerBalanceValidationError(
-                availablePassengers,
-                requiredPassengers);
+            return
+                GetPassengerBalanceValidationError(
+                    availablePassengers,
+                    requiredPassengers);
         }
 
         private string GetWagonValidationError(
             WagonSetup setup,
-            TrainWagon wagon,
-            int wagonIndex,
-            IReadOnlyList<ColorMaterialMapping> materialsMap)
+            int wagonIndex)
         {
             if (setup == null)
             {
@@ -144,69 +110,8 @@ namespace StationJam.Core
                     "Вагон должен быть полностью заполнен.";
             }
 
-            if (wagon == null)
-            {
-                return
-                    $"Вагон сцены {wagonIndex} " +
-                    "не назначен.";
-            }
-
-            if (wagon.SeatPoints == null)
-            {
-                return
-                    $"У вагона {wagonIndex} " +
-                    "не назначен массив Seat Points.";
-            }
-
-            if (setup.Capacity >
-                wagon.SeatPoints.Length)
-            {
-                return
-                    $"Вместимость вагона {wagonIndex} " +
-                    $"равна {setup.Capacity}, но точек " +
-                    $"мест только " +
-                    $"{wagon.SeatPoints.Length}.";
-            }
-
-            for (int seatIndex = 0;
-                 seatIndex < setup.Capacity;
-                 seatIndex++)
-            {
-                if (wagon.SeatPoints[seatIndex] == null)
-                {
-                    return
-                        $"У вагона {wagonIndex} " +
-                        $"не назначена точка места " +
-                        $"{seatIndex}.";
-                }
-            }
-
-            if (!HasMaterialForColor(
-                    setup.TargetColor,
-                    materialsMap))
-            {
-                return
-                    $"Не назначен материал для " +
-                    $"целевого цвета " +
-                    $"{setup.TargetColor} вагона " +
-                    $"{wagonIndex}.";
-            }
-
-            foreach (ColorType passengerColor
-                     in setup.StartingPassengers)
-            {
-                if (!HasMaterialForColor(
-                        passengerColor,
-                        materialsMap))
-                {
-                    return
-                        $"Не назначен материал для цвета " +
-                        $"{passengerColor}, используемого " +
-                        $"в вагоне {wagonIndex}.";
-                }
-            }
-
-            return string.Empty;
+            return
+                string.Empty;
         }
 
         private string GetPassengerBalanceValidationError(
@@ -232,24 +137,8 @@ namespace StationJam.Core
                 }
             }
 
-            return string.Empty;
-        }
-
-        private bool HasMaterialForColor(
-            ColorType color,
-            IReadOnlyList<ColorMaterialMapping> materialsMap)
-        {
-            foreach (ColorMaterialMapping mapping
-                     in materialsMap)
-            {
-                if (mapping.Color == color &&
-                    mapping.Material != null)
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return
+                string.Empty;
         }
 
         private void AddColorCount(
@@ -257,14 +146,17 @@ namespace StationJam.Core
             ColorType color,
             int amount)
         {
-            if (colorCounts.ContainsKey(color))
+            if (colorCounts.ContainsKey(
+                    color))
             {
-                colorCounts[color] += amount;
+                colorCounts[color] +=
+                    amount;
 
                 return;
             }
 
-            colorCounts[color] = amount;
+            colorCounts[color] =
+                amount;
         }
     }
 }

@@ -16,9 +16,6 @@ namespace StationJam.Factories
         private List<ColorMaterialMapping> _materialsMap =
             new List<ColorMaterialMapping>();
 
-        public IReadOnlyList<ColorMaterialMapping> MaterialsMap =>
-            _materialsMap;
-
         public Passenger Create(
             ColorType color,
             Vector3 position)
@@ -26,13 +23,15 @@ namespace StationJam.Factories
             if (_passengerPrefab == null)
             {
                 Debug.LogError(
-                    "[PassengerFactory] Passenger prefab не назначен.");
+                    "[PassengerFactory] Passenger prefab " +
+                    "не назначен.");
 
                 return null;
             }
 
             Material material =
-                GetMaterialByColor(color);
+                GetMaterialByColor(
+                    color);
 
             if (material == null)
             {
@@ -53,7 +52,8 @@ namespace StationJam.Factories
                 color,
                 material);
 
-            return passenger;
+            return
+                passenger;
         }
 
         public string GetConfigurationError()
@@ -61,14 +61,16 @@ namespace StationJam.Factories
             if (_passengerPrefab == null)
             {
                 return
-                    "PassengerFactory: префаб пассажира не назначен.";
+                    "PassengerFactory: префаб пассажира " +
+                    "не назначен.";
             }
 
             if (_materialsMap == null ||
                 _materialsMap.Count == 0)
             {
                 return
-                    "PassengerFactory: список материалов цветов пуст.";
+                    "PassengerFactory: список материалов " +
+                    "цветов пуст.";
             }
 
             foreach (ColorMaterialMapping mapping
@@ -77,27 +79,51 @@ namespace StationJam.Factories
                 if (mapping.Material == null)
                 {
                     return
-                        $"PassengerFactory: материал для цвета " +
-                        $"{mapping.Color} не назначен.";
+                        $"PassengerFactory: материал для " +
+                        $"цвета {mapping.Color} " +
+                        "не назначен.";
                 }
             }
 
-            return string.Empty;
+            return
+                string.Empty;
+        }
+
+        public string GetColorConfigurationError(
+            ColorType color)
+        {
+            if (GetMaterialByColor(color) != null)
+            {
+                return
+                    string.Empty;
+            }
+
+            return
+                $"PassengerFactory: материал для цвета " +
+                $"{color} не найден.";
         }
 
         private Material GetMaterialByColor(
             ColorType color)
         {
+            if (_materialsMap == null)
+            {
+                return null;
+            }
+
             foreach (ColorMaterialMapping mapping
                      in _materialsMap)
             {
-                if (mapping.Color == color)
+                if (mapping.Color == color &&
+                    mapping.Material != null)
                 {
-                    return mapping.Material;
+                    return
+                        mapping.Material;
                 }
             }
 
-            return null;
+            return
+                null;
         }
     }
 }

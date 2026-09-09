@@ -24,24 +24,17 @@ namespace StationJam.Factories
             Quaternion rotation,
             Transform parent)
         {
-            if (_wagonPrefab == null)
+            string wagonConfigurationError =
+                GetWagonConfigurationError(
+                    targetColor,
+                    capacity);
+
+            if (!string.IsNullOrEmpty(
+                    wagonConfigurationError))
             {
                 Debug.LogError(
-                    "[WagonFactory] Wagon prefab " +
-                    "не назначен.");
-
-                return null;
-            }
-
-            Material material =
-                GetMaterialByColor(
-                    targetColor);
-
-            if (material == null)
-            {
-                Debug.LogError(
-                    $"[WagonFactory] Материал для цвета " +
-                    $"{targetColor} не найден.");
+                    $"[WagonFactory] " +
+                    $"{wagonConfigurationError}");
 
                 return null;
             }
@@ -69,6 +62,10 @@ namespace StationJam.Factories
                 return null;
             }
 
+            Material material =
+                GetMaterialByColor(
+                    targetColor);
+
             visualRenderer.sharedMaterial =
                 material;
 
@@ -77,7 +74,8 @@ namespace StationJam.Factories
                 capacity,
                 departureDirection);
 
-            return wagon;
+            return
+                wagon;
         }
 
         public string GetConfigurationError()
@@ -116,7 +114,32 @@ namespace StationJam.Factories
                 }
             }
 
-            return string.Empty;
+            return
+                string.Empty;
+        }
+
+        public string GetWagonConfigurationError(
+            ColorType targetColor,
+            int capacity)
+        {
+            if (!CanFitCapacity(
+                    capacity))
+            {
+                return
+                    $"текущий prefab не поддерживает " +
+                    $"вместимость {capacity}.";
+            }
+
+            if (GetMaterialByColor(
+                    targetColor) == null)
+            {
+                return
+                    $"материал для цвета " +
+                    $"{targetColor} не найден.";
+            }
+
+            return
+                string.Empty;
         }
 
         public bool CanFitCapacity(
@@ -125,27 +148,37 @@ namespace StationJam.Factories
             if (_wagonPrefab == null ||
                 _wagonPrefab.SeatPoints == null)
             {
-                return false;
+                return
+                    false;
             }
 
-            return capacity > 0 &&
-                   capacity <=
-                   _wagonPrefab.SeatPoints.Length;
+            return
+                capacity > 0 &&
+                capacity <=
+                _wagonPrefab.SeatPoints.Length;
         }
 
         private Material GetMaterialByColor(
             ColorType color)
         {
+            if (_materialsMap == null)
+            {
+                return null;
+            }
+
             foreach (ColorMaterialMapping mapping
                      in _materialsMap)
             {
-                if (mapping.Color == color)
+                if (mapping.Color == color &&
+                    mapping.Material != null)
                 {
-                    return mapping.Material;
+                    return
+                        mapping.Material;
                 }
             }
 
-            return null;
+            return
+                null;
         }
     }
 }

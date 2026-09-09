@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.Serialization;
 using StationJam.Data;
 using StationJam.Entities;
 using StationJam.Factories;
@@ -31,12 +30,6 @@ namespace StationJam.Core
         [SerializeField]
         private WagonFactory _wagonFactory;
 
-        [Header("Legacy Scene Wagons")]
-        [FormerlySerializedAs("_sceneWagons")]
-        [SerializeField]
-        private List<TrainWagon> _legacySceneWagons =
-            new List<TrainWagon>();
-
         private readonly List<Passenger> _spawnedPassengers =
             new List<Passenger>();
 
@@ -63,9 +56,7 @@ namespace StationJam.Core
 
             string levelValidationError =
                 _levelValidator.GetValidationError(
-                    levelData,
-                    _legacySceneWagons,
-                    _passengerFactory.MaterialsMap);
+                    levelData);
 
             if (!string.IsNullOrEmpty(
                     levelValidationError))
@@ -89,15 +80,28 @@ namespace StationJam.Core
                 return false;
             }
 
-            string wagonCapacityError =
-                GetWagonCapacityValidationError(
+            string passengerFactoryValidationError =
+                GetPassengerFactoryValidationError(
                     levelData);
 
             if (!string.IsNullOrEmpty(
-                    wagonCapacityError))
+                    passengerFactoryValidationError))
             {
                 LogBuildError(
-                    wagonCapacityError);
+                    passengerFactoryValidationError);
+
+                return false;
+            }
+
+            string wagonFactoryValidationError =
+                GetWagonFactoryValidationError(
+                    levelData);
+
+            if (!string.IsNullOrEmpty(
+                    wagonFactoryValidationError))
+            {
+                LogBuildError(
+                    wagonFactoryValidationError);
 
                 return false;
             }
@@ -188,7 +192,8 @@ namespace StationJam.Core
                  wagonIndex++)
             {
                 WagonSetup setup =
-                    levelData.Wagons[wagonIndex];
+                    levelData.Wagons[
+                        wagonIndex];
 
                 WagonLayoutSlot layoutSlot =
                     _levelLayout.GetSlot(
@@ -228,7 +233,8 @@ namespace StationJam.Core
                     wagon);
             }
 
-            return wagonsInLevel;
+            return
+                wagonsInLevel;
         }
 
         private TrainWagon CreateWagon(
@@ -256,44 +262,19 @@ namespace StationJam.Core
             _spawnedWagons.Add(
                 wagon);
 
-            return wagon;
+            return
+                wagon;
         }
 
         private bool FillWagon(
             TrainWagon wagon,
             WagonSetup setup)
         {
-            if (wagon.SeatPoints == null ||
-                wagon.SeatPoints.Length <
-                setup.Capacity)
-            {
-                Debug.LogError(
-                    $"[LevelBuilder] ¬ созданном вагоне " +
-                    $"недостаточно Seat Points. " +
-                    $"Ќужно {setup.Capacity}.");
-
-                return false;
-            }
-
             for (int passengerIndex = 0;
                  passengerIndex <
                  setup.StartingPassengers.Count;
                  passengerIndex++)
             {
-                Transform seatPoint =
-                    wagon.SeatPoints[
-                        passengerIndex];
-
-                if (seatPoint == null)
-                {
-                    Debug.LogError(
-                        $"[LevelBuilder] Seat Point " +
-                        $"{passengerIndex} созданного " +
-                        "вагона не назначен.");
-
-                    return false;
-                }
-
                 bool passengerAdded =
                     CreatePassengerInWagon(
                         wagon,
@@ -307,7 +288,8 @@ namespace StationJam.Core
                 }
             }
 
-            return true;
+            return
+                true;
         }
 
         private bool CreatePassengerInWagon(
@@ -348,7 +330,8 @@ namespace StationJam.Core
                 $"пассажира на место {seatIndex} " +
                 $"вагона {wagon.gameObject.name}.");
 
-            return false;
+            return
+                false;
         }
 
         private Passenger CreatePassenger(
@@ -366,7 +349,8 @@ namespace StationJam.Core
                     passenger);
             }
 
-            return passenger;
+            return
+                passenger;
         }
 
         private void CheckInitialWagonsCompletion(
@@ -381,6 +365,77 @@ namespace StationJam.Core
             }
         }
 
+        private string GetPassengerFactoryValidationError(
+            LevelData levelData)
+        {
+            string bufferColorError =
+                _passengerFactory
+                    .GetColorConfigurationError(
+                        levelData.InitialBufferColor);
+
+            if (!string.IsNullOrEmpty(
+                    bufferColorError))
+            {
+                return
+                    bufferColorError;
+            }
+
+            foreach (WagonSetup setup
+                     in levelData.Wagons)
+            {
+                foreach (ColorType passengerColor
+                         in setup.StartingPassengers)
+                {
+                    string colorError =
+                        _passengerFactory
+                            .GetColorConfigurationError(
+                                passengerColor);
+
+                    if (!string.IsNullOrEmpty(
+                            colorError))
+                    {
+                        return
+                            colorError;
+                    }
+                }
+            }
+
+            return
+                string.Empty;
+        }
+
+        private string GetWagonFactoryValidationError(
+            LevelData levelData)
+        {
+            for (int wagonIndex = 0;
+                 wagonIndex < levelData.Wagons.Count;
+                 wagonIndex++)
+            {
+                WagonSetup setup =
+                    levelData.Wagons[
+                        wagonIndex];
+
+                string wagonError =
+                    _wagonFactory
+                        .GetWagonConfigurationError(
+                            setup.TargetColor,
+                            setup.Capacity);
+
+                if (string.IsNullOrEmpty(
+                        wagonError))
+                {
+                    continue;
+                }
+
+                return
+                    $"¬агон {wagonIndex}: " +
+                    $"{wagonError}";
+            }
+
+            return
+                string.Empty;
+        }
+
         private void ClearBuiltLevel()
         {
             _levelFlowDriver.ResetLevel();
@@ -390,7 +445,6 @@ namespace StationJam.Core
 
             ClearSpawnedPassengers();
             ClearSpawnedWagons();
-            DisableLegacySceneWagons();
         }
 
         private void RollbackFailedBuild()
@@ -406,7 +460,6 @@ namespace StationJam.Core
 
             ClearSpawnedPassengers();
             ClearSpawnedWagons();
-            DisableLegacySceneWagons();
 
             Debug.LogWarning(
                 "[LevelBuilder] „астично построенный " +
@@ -452,51 +505,6 @@ namespace StationJam.Core
             }
 
             _spawnedWagons.Clear();
-        }
-
-        private void DisableLegacySceneWagons()
-        {
-            if (_legacySceneWagons == null)
-            {
-                return;
-            }
-
-            foreach (TrainWagon wagon
-                     in _legacySceneWagons)
-            {
-                if (wagon != null)
-                {
-                    wagon.DisableForLevel();
-                }
-            }
-        }
-
-        private string GetWagonCapacityValidationError(
-            LevelData levelData)
-        {
-            for (int wagonIndex = 0;
-                 wagonIndex < levelData.Wagons.Count;
-                 wagonIndex++)
-            {
-                WagonSetup setup =
-                    levelData.Wagons[
-                        wagonIndex];
-
-                if (_wagonFactory.CanFitCapacity(
-                        setup.Capacity))
-                {
-                    continue;
-                }
-
-                return
-                    $"WagonFactory: вместимость " +
-                    $"вагона {wagonIndex} равна " +
-                    $"{setup.Capacity}, но текущий prefab " +
-                    "не содержит достаточного количества " +
-                    "Seat Points.";
-            }
-
-            return string.Empty;
         }
 
         private string GetReferencesValidationError()
@@ -559,7 +567,8 @@ namespace StationJam.Core
                     wagonFactoryError;
             }
 
-            return string.Empty;
+            return
+                string.Empty;
         }
 
         private void LogBuildError(
