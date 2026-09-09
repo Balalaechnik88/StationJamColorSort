@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54a115576f5c9c24fa43a0d6e949b18c, type: 3}
+  m_Name: Level_03
+  m_EditorClassIdentifier: 
+  LevelNumber: 3
+  InitialBufferColor: 3
+  Wagons:
+  - TargetColor: 0
+    Capacity: 4
+    StartingPassengers: 01000000020000000000000001000000
+  - TargetColor: 1
+    Capacity: 4
+    StartingPassengers: 00000000020000000100000002000000
+  - TargetColor: 2
+    Capacity: 4
+    StartingPassengers: 00000000010000000200000000000000
