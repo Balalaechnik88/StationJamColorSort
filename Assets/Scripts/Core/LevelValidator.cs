@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using StationJam.Data;
 using StationJam.Entities;
@@ -13,6 +14,21 @@ namespace StationJam.Core
             {
                 return
                     "Передан пустой LevelData.";
+            }
+
+            if (levelData.LevelNumber <= 0)
+            {
+                return
+                    "Номер уровня должен быть больше нуля.";
+            }
+
+            if (!IsValidColor(
+                    levelData.InitialBufferColor))
+            {
+                return
+                    $"Недопустимый цвет пассажира " +
+                    $"в буфере: " +
+                    $"{levelData.InitialBufferColor}.";
             }
 
             if (levelData.Wagons == null ||
@@ -85,6 +101,15 @@ namespace StationJam.Core
                     $"{wagonIndex} отсутствует.";
             }
 
+            if (!IsValidColor(
+                    setup.TargetColor))
+            {
+                return
+                    $"Вагон {wagonIndex} имеет " +
+                    $"недопустимый целевой цвет: " +
+                    $"{setup.TargetColor}.";
+            }
+
             if (setup.Capacity <= 0)
             {
                 return
@@ -108,6 +133,27 @@ namespace StationJam.Core
                     $"пассажиров " +
                     $"{setup.StartingPassengers.Count}. " +
                     "Вагон должен быть полностью заполнен.";
+            }
+
+            for (int passengerIndex = 0;
+                 passengerIndex <
+                 setup.StartingPassengers.Count;
+                 passengerIndex++)
+            {
+                ColorType passengerColor =
+                    setup.StartingPassengers[
+                        passengerIndex];
+
+                if (IsValidColor(
+                        passengerColor))
+                {
+                    continue;
+                }
+
+                return
+                    $"Пассажир {passengerIndex} вагона " +
+                    $"{wagonIndex} имеет недопустимый " +
+                    $"цвет: {passengerColor}.";
             }
 
             return
@@ -139,6 +185,15 @@ namespace StationJam.Core
 
             return
                 string.Empty;
+        }
+
+        private bool IsValidColor(
+            ColorType color)
+        {
+            return
+                Enum.IsDefined(
+                    typeof(ColorType),
+                    color);
         }
 
         private void AddColorCount(

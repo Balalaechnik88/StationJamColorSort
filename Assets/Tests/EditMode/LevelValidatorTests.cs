@@ -55,6 +55,52 @@ namespace StationJam.Tests.EditMode
         }
 
         [Test]
+        public void GetValidationError_WhenLevelNumberIsZero_ReturnsError()
+        {
+            _levelData.LevelNumber =
+                0;
+
+            string validationError =
+                _validator.GetValidationError(
+                    _levelData);
+
+            Assert.AreEqual(
+                "Номер уровня должен быть больше нуля.",
+                validationError);
+        }
+
+        [Test]
+        public void GetValidationError_WhenLevelNumberIsNegative_ReturnsError()
+        {
+            _levelData.LevelNumber =
+                -1;
+
+            string validationError =
+                _validator.GetValidationError(
+                    _levelData);
+
+            Assert.AreEqual(
+                "Номер уровня должен быть больше нуля.",
+                validationError);
+        }
+
+        [Test]
+        public void GetValidationError_WhenBufferColorIsInvalid_ReturnsError()
+        {
+            _levelData.InitialBufferColor =
+                (ColorType)999;
+
+            string validationError =
+                _validator.GetValidationError(
+                    _levelData);
+
+            Assert.AreEqual(
+                "Недопустимый цвет пассажира " +
+                "в буфере: 999.",
+                validationError);
+        }
+
+        [Test]
         public void GetValidationError_WhenLevelHasNoWagons_ReturnsError()
         {
             string validationError =
@@ -63,6 +109,64 @@ namespace StationJam.Tests.EditMode
 
             Assert.AreEqual(
                 "В конфигурации уровня отсутствуют вагоны.",
+                validationError);
+        }
+
+        [Test]
+        public void GetValidationError_WhenTargetColorIsInvalid_ReturnsError()
+        {
+            _levelData.Wagons.Add(
+                new WagonSetup
+                {
+                    TargetColor =
+                        (ColorType)999,
+
+                    Capacity =
+                        1,
+
+                    StartingPassengers =
+                        new List<ColorType>
+                        {
+                            ColorType.Red
+                        }
+                });
+
+            string validationError =
+                _validator.GetValidationError(
+                    _levelData);
+
+            Assert.AreEqual(
+                "Вагон 0 имеет недопустимый " +
+                "целевой цвет: 999.",
+                validationError);
+        }
+
+        [Test]
+        public void GetValidationError_WhenPassengerColorIsInvalid_ReturnsError()
+        {
+            _levelData.Wagons.Add(
+                new WagonSetup
+                {
+                    TargetColor =
+                        ColorType.Red,
+
+                    Capacity =
+                        1,
+
+                    StartingPassengers =
+                        new List<ColorType>
+                        {
+                            (ColorType)999
+                        }
+                });
+
+            string validationError =
+                _validator.GetValidationError(
+                    _levelData);
+
+            Assert.AreEqual(
+                "Пассажир 0 вагона 0 имеет " +
+                "недопустимый цвет: 999.",
                 validationError);
         }
 

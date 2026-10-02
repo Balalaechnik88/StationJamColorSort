@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 54a115576f5c9c24fa43a0d6e949b18c, type: 3}
   m_Name: Level_04
   m_EditorClassIdentifier: 
-  LevelNumber: 0
+  LevelNumber: 4
   InitialBufferColor: 3
   Wagons:
   - TargetColor: 0
