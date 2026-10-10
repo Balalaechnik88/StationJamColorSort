@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using DG.Tweening;
 using UnityEngine;
 using StationJam.Data;
 using StationJam.Entities;
@@ -30,14 +29,11 @@ namespace StationJam.Core
         [SerializeField]
         private WagonFactory _wagonFactory;
 
-        private readonly List<Passenger> _spawnedPassengers =
-            new List<Passenger>();
-
-        private readonly List<TrainWagon> _spawnedWagons =
-            new List<TrainWagon>();
-
         private readonly LevelBuildPreflight _preflight =
             new LevelBuildPreflight();
+
+        private readonly LevelRuntimeSession _runtimeSession =
+            new LevelRuntimeSession();
 
         public bool BuildLevel(
             LevelData levelData)
@@ -223,7 +219,7 @@ namespace StationJam.Core
                 return null;
             }
 
-            _spawnedWagons.Add(
+            _runtimeSession.RegisterWagon(
                 wagon);
 
             return
@@ -309,7 +305,7 @@ namespace StationJam.Core
 
             if (passenger != null)
             {
-                _spawnedPassengers.Add(
+                _runtimeSession.RegisterPassenger(
                     passenger);
             }
 
@@ -331,13 +327,9 @@ namespace StationJam.Core
 
         private void ClearBuiltLevel()
         {
-            _levelFlowDriver.ResetLevel();
-
-            _swapEngine.InitializeBuffer(
-                null);
-
-            ClearSpawnedPassengers();
-            ClearSpawnedWagons();
+            _runtimeSession.Clear(
+                _levelFlowDriver,
+                _swapEngine);
         }
 
         private void RollbackFailedBuild()
@@ -346,58 +338,13 @@ namespace StationJam.Core
                 "[LevelBuilder] Построение уровня " +
                 "не завершено. Выполняется откат.");
 
-            _levelFlowDriver.ResetLevel();
-
-            _swapEngine.InitializeBuffer(
-                null);
-
-            ClearSpawnedPassengers();
-            ClearSpawnedWagons();
+            _runtimeSession.Clear(
+                _levelFlowDriver,
+                _swapEngine);
 
             Debug.LogWarning(
                 "[LevelBuilder] Частично построенный " +
                 "уровень полностью очищен.");
-        }
-
-        private void ClearSpawnedPassengers()
-        {
-            foreach (Passenger passenger
-                     in _spawnedPassengers)
-            {
-                if (passenger == null)
-                {
-                    continue;
-                }
-
-                passenger.transform.DOKill();
-
-                passenger.gameObject.SetActive(
-                    false);
-
-                Destroy(
-                    passenger.gameObject);
-            }
-
-            _spawnedPassengers.Clear();
-        }
-
-        private void ClearSpawnedWagons()
-        {
-            foreach (TrainWagon wagon
-                     in _spawnedWagons)
-            {
-                if (wagon == null)
-                {
-                    continue;
-                }
-
-                wagon.DisableForLevel();
-
-                Destroy(
-                    wagon.gameObject);
-            }
-
-            _spawnedWagons.Clear();
         }
 
         private string GetReferencesValidationError()
