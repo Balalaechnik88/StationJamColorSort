@@ -66,50 +66,48 @@ namespace StationJam.Core
                 return false;
             }
 
-            ClearBuiltLevel();
+            _runtimeSession.Clear(
+                _levelFlowDriver,
+                _swapEngine);
 
             bool buildCompleted =
                 false;
 
             try
             {
-                Passenger initialBufferPassenger =
-                    CreatePassenger(
-                        levelData.InitialBufferColor,
+                LevelSpawner levelSpawner =
+                    new LevelSpawner(
+                        _levelLayout,
+                        _passengerFactory,
+                        _wagonFactory,
+                        _runtimeSession);
+
+                bool levelSpawned =
+                    levelSpawner.TrySpawn(
+                        levelData,
                         _transitSlot
                             .GetPosition()
-                            .position);
+                            .position,
+                        out LevelSpawnResult spawnResult);
 
-                if (initialBufferPassenger == null)
+                if (!levelSpawned ||
+                    spawnResult == null)
                 {
                     LogBuildError(
-                        "Не удалось создать пассажира " +
-                        "для транзитного слота.");
+                        "Не удалось создать runtime " +
+                        "объекты уровня.");
 
                     return false;
                 }
 
                 _swapEngine.InitializeBuffer(
-                    initialBufferPassenger);
-
-                List<TrainWagon> wagonsInLevel =
-                    BuildWagons(
-                        levelData);
-
-                if (wagonsInLevel == null)
-                {
-                    LogBuildError(
-                        "Не удалось полностью построить " +
-                        "вагоны уровня.");
-
-                    return false;
-                }
+                    spawnResult.BufferPassenger);
 
                 _levelFlowDriver.Initialize(
-                    wagonsInLevel);
+                    spawnResult.Wagons);
 
                 CheckInitialWagonsCompletion(
-                    wagonsInLevel);
+                    spawnResult.Wagons);
 
                 buildCompleted =
                     true;
@@ -141,178 +139,6 @@ namespace StationJam.Core
             }
         }
 
-        private List<TrainWagon> BuildWagons(
-            LevelData levelData)
-        {
-            List<TrainWagon> wagonsInLevel =
-                new List<TrainWagon>();
-
-            for (int wagonIndex = 0;
-                 wagonIndex < levelData.Wagons.Count;
-                 wagonIndex++)
-            {
-                WagonSetup setup =
-                    levelData.Wagons[
-                        wagonIndex];
-
-                WagonLayoutSlot layoutSlot =
-                    _levelLayout.GetSlot(
-                        wagonIndex);
-
-                if (layoutSlot == null ||
-                    layoutSlot.SpawnPoint == null)
-                {
-                    Debug.LogError(
-                        $"[LevelBuilder] Layout-слот " +
-                        $"{wagonIndex} недоступен.");
-
-                    return null;
-                }
-
-                TrainWagon wagon =
-                    CreateWagon(
-                        setup,
-                        layoutSlot);
-
-                if (wagon == null)
-                {
-                    return null;
-                }
-
-                bool wagonFilled =
-                    FillWagon(
-                        wagon,
-                        setup);
-
-                if (!wagonFilled)
-                {
-                    return null;
-                }
-
-                wagonsInLevel.Add(
-                    wagon);
-            }
-
-            return
-                wagonsInLevel;
-        }
-
-        private TrainWagon CreateWagon(
-            WagonSetup setup,
-            WagonLayoutSlot layoutSlot)
-        {
-            TrainWagon wagon =
-                _wagonFactory.Create(
-                    setup.TargetColor,
-                    setup.Capacity,
-                    layoutSlot.DepartureDirection,
-                    layoutSlot.SpawnPoint.position,
-                    layoutSlot.SpawnPoint.rotation,
-                    _levelLayout.transform);
-
-            if (wagon == null)
-            {
-                Debug.LogError(
-                    "[LevelBuilder] WagonFactory " +
-                    "не смогла создать вагон.");
-
-                return null;
-            }
-
-            _runtimeSession.RegisterWagon(
-                wagon);
-
-            return
-                wagon;
-        }
-
-        private bool FillWagon(
-            TrainWagon wagon,
-            WagonSetup setup)
-        {
-            for (int passengerIndex = 0;
-                 passengerIndex <
-                 setup.StartingPassengers.Count;
-                 passengerIndex++)
-            {
-                bool passengerAdded =
-                    CreatePassengerInWagon(
-                        wagon,
-                        setup.StartingPassengers[
-                            passengerIndex],
-                        passengerIndex);
-
-                if (!passengerAdded)
-                {
-                    return false;
-                }
-            }
-
-            return
-                true;
-        }
-
-        private bool CreatePassengerInWagon(
-            TrainWagon wagon,
-            ColorType passengerColor,
-            int seatIndex)
-        {
-            Transform seatPoint =
-                wagon.SeatPoints[
-                    seatIndex];
-
-            Passenger passenger =
-                CreatePassenger(
-                    passengerColor,
-                    seatPoint.position);
-
-            if (passenger == null)
-            {
-                Debug.LogError(
-                    $"[LevelBuilder] Не удалось создать " +
-                    $"пассажира для места {seatIndex} " +
-                    $"вагона {wagon.gameObject.name}.");
-
-                return false;
-            }
-
-            bool passengerAdded =
-                wagon.TryAddPassenger(
-                    passenger);
-
-            if (passengerAdded)
-            {
-                return true;
-            }
-
-            Debug.LogError(
-                $"[LevelBuilder] Не удалось добавить " +
-                $"пассажира на место {seatIndex} " +
-                $"вагона {wagon.gameObject.name}.");
-
-            return
-                false;
-        }
-
-        private Passenger CreatePassenger(
-            ColorType color,
-            Vector3 position)
-        {
-            Passenger passenger =
-                _passengerFactory.Create(
-                    color,
-                    position);
-
-            if (passenger != null)
-            {
-                _runtimeSession.RegisterPassenger(
-                    passenger);
-            }
-
-            return
-                passenger;
-        }
-
         private void CheckInitialWagonsCompletion(
             IReadOnlyList<TrainWagon> wagons)
         {
@@ -323,13 +149,6 @@ namespace StationJam.Core
                     wagon.CheckCompletion();
                 }
             }
-        }
-
-        private void ClearBuiltLevel()
-        {
-            _runtimeSession.Clear(
-                _levelFlowDriver,
-                _swapEngine);
         }
 
         private void RollbackFailedBuild()
