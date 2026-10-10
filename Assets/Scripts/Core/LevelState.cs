@@ -5,6 +5,8 @@ namespace StationJam.Core
         NotInitialized,
         Playing,
         Swapping,
+        Paused,
+        Failed,
         Completed
     }
 }

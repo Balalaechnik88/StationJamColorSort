@@ -32,21 +32,30 @@ namespace StationJam.Tests.EditMode
             _wagon =
                 _wagonGameObject.AddComponent<
                     TrainWagon>();
+
+            _wagon.InitializeData(
+                ColorType.Red,
+                1);
         }
 
         [TearDown]
         public void TearDown()
         {
-            if (_flowGameObject != null)
+            if (_wagon != null)
             {
-                Object.DestroyImmediate(
-                    _flowGameObject);
+                _wagon.DisableForLevel();
             }
 
             if (_wagonGameObject != null)
             {
                 Object.DestroyImmediate(
                     _wagonGameObject);
+            }
+
+            if (_flowGameObject != null)
+            {
+                Object.DestroyImmediate(
+                    _flowGameObject);
             }
         }
 
@@ -56,62 +65,35 @@ namespace StationJam.Tests.EditMode
             Assert.AreEqual(
                 LevelState.NotInitialized,
                 _levelFlowDriver.CurrentState);
-        }
-
-        [Test]
-        public void Initialize_WithWagon_ChangesStateToPlaying()
-        {
-            List<TrainWagon> wagons =
-                CreateWagonList();
-
-            _levelFlowDriver.Initialize(
-                wagons);
-
-            Assert.AreEqual(
-                LevelState.Playing,
-                _levelFlowDriver.CurrentState);
-
-            Assert.IsTrue(
-                _levelFlowDriver.CanAcceptInput);
-        }
-
-        [Test]
-        public void TryStartSwap_WhenPlaying_ChangesStateToSwapping()
-        {
-            InitializeLevel();
-
-            bool swapStarted =
-                _levelFlowDriver.TryStartSwap();
-
-            Assert.IsTrue(
-                swapStarted);
-
-            Assert.AreEqual(
-                LevelState.Swapping,
-                _levelFlowDriver.CurrentState);
 
             Assert.IsFalse(
                 _levelFlowDriver.CanAcceptInput);
         }
 
         [Test]
-        public void FinishSwap_WhenSwapping_ReturnsStateToPlaying()
+        public void Initialize_WithWagon_ChangesStateToPlaying()
         {
-            InitializeLevel();
-
-            bool swapStarted =
-                _levelFlowDriver.TryStartSwap();
-
-            Assert.IsTrue(
-                swapStarted);
-
-            _levelFlowDriver.FinishSwap();
+            InitializeWithWagon();
 
             Assert.AreEqual(
                 LevelState.Playing,
                 _levelFlowDriver.CurrentState);
 
             Assert.IsTrue(
+                _levelFlowDriver.CanAcceptInput);
+        }
+
+        [Test]
+        public void Initialize_WithEmptyWagonList_RemainsNotInitialized()
+        {
+            _levelFlowDriver.Initialize(
+                new List<TrainWagon>());
+
+            Assert.AreEqual(
+                LevelState.NotInitialized,
+                _levelFlowDriver.CurrentState);
+
+            Assert.IsFalse(
                 _levelFlowDriver.CanAcceptInput);
         }
 
@@ -130,9 +112,28 @@ namespace StationJam.Tests.EditMode
         }
 
         [Test]
+        public void TryStartSwap_WhenPlaying_ChangesStateToSwapping()
+        {
+            InitializeWithWagon();
+
+            bool swapStarted =
+                _levelFlowDriver.TryStartSwap();
+
+            Assert.IsTrue(
+                swapStarted);
+
+            Assert.AreEqual(
+                LevelState.Swapping,
+                _levelFlowDriver.CurrentState);
+
+            Assert.IsFalse(
+                _levelFlowDriver.CanAcceptInput);
+        }
+
+        [Test]
         public void TryStartSwap_WhenAlreadySwapping_ReturnsFalse()
         {
-            InitializeLevel();
+            InitializeWithWagon();
 
             bool firstSwapStarted =
                 _levelFlowDriver.TryStartSwap();
@@ -152,9 +153,26 @@ namespace StationJam.Tests.EditMode
         }
 
         [Test]
+        public void FinishSwap_WhenSwapping_ReturnsStateToPlaying()
+        {
+            InitializeWithWagon();
+
+            _levelFlowDriver.TryStartSwap();
+
+            _levelFlowDriver.FinishSwap();
+
+            Assert.AreEqual(
+                LevelState.Playing,
+                _levelFlowDriver.CurrentState);
+
+            Assert.IsTrue(
+                _levelFlowDriver.CanAcceptInput);
+        }
+
+        [Test]
         public void ResetLevel_AfterInitialization_ReturnsToNotInitialized()
         {
-            InitializeLevel();
+            InitializeWithWagon();
 
             _levelFlowDriver.ResetLevel();
 
@@ -167,34 +185,149 @@ namespace StationJam.Tests.EditMode
         }
 
         [Test]
-        public void Initialize_WithEmptyWagonList_RemainsNotInitialized()
+        public void TryPause_WhenPlaying_ChangesStateToPaused()
         {
-            List<TrainWagon> wagons =
-                new List<TrainWagon>();
+            InitializeWithWagon();
 
-            _levelFlowDriver.Initialize(
-                wagons);
+            bool paused =
+                _levelFlowDriver.TryPause();
+
+            Assert.IsTrue(
+                paused);
 
             Assert.AreEqual(
-                LevelState.NotInitialized,
+                LevelState.Paused,
                 _levelFlowDriver.CurrentState);
 
             Assert.IsFalse(
                 _levelFlowDriver.CanAcceptInput);
         }
 
-        private void InitializeLevel()
+        [Test]
+        public void TryPause_WhenSwapping_ReturnsFalse()
         {
-            _levelFlowDriver.Initialize(
-                CreateWagonList());
+            InitializeWithWagon();
+
+            _levelFlowDriver.TryStartSwap();
+
+            bool paused =
+                _levelFlowDriver.TryPause();
+
+            Assert.IsFalse(
+                paused);
+
+            Assert.AreEqual(
+                LevelState.Swapping,
+                _levelFlowDriver.CurrentState);
         }
 
-        private List<TrainWagon> CreateWagonList()
+        [Test]
+        public void TryResume_WhenPaused_ChangesStateToPlaying()
         {
-            return new List<TrainWagon>
-            {
-                _wagon
-            };
+            InitializeWithWagon();
+
+            _levelFlowDriver.TryPause();
+
+            bool resumed =
+                _levelFlowDriver.TryResume();
+
+            Assert.IsTrue(
+                resumed);
+
+            Assert.AreEqual(
+                LevelState.Playing,
+                _levelFlowDriver.CurrentState);
+
+            Assert.IsTrue(
+                _levelFlowDriver.CanAcceptInput);
+        }
+
+        [Test]
+        public void TryResume_WhenPlaying_ReturnsFalse()
+        {
+            InitializeWithWagon();
+
+            bool resumed =
+                _levelFlowDriver.TryResume();
+
+            Assert.IsFalse(
+                resumed);
+
+            Assert.AreEqual(
+                LevelState.Playing,
+                _levelFlowDriver.CurrentState);
+        }
+
+        [Test]
+        public void TryFailLevel_WhenPlaying_ChangesStateToFailed()
+        {
+            InitializeWithWagon();
+
+            bool failed =
+                _levelFlowDriver.TryFailLevel();
+
+            Assert.IsTrue(
+                failed);
+
+            Assert.AreEqual(
+                LevelState.Failed,
+                _levelFlowDriver.CurrentState);
+
+            Assert.IsFalse(
+                _levelFlowDriver.CanAcceptInput);
+        }
+
+        [Test]
+        public void TryFailLevel_WhenAlreadyFailed_ReturnsFalse()
+        {
+            InitializeWithWagon();
+
+            bool firstFailure =
+                _levelFlowDriver.TryFailLevel();
+
+            bool secondFailure =
+                _levelFlowDriver.TryFailLevel();
+
+            Assert.IsTrue(
+                firstFailure);
+
+            Assert.IsFalse(
+                secondFailure);
+
+            Assert.AreEqual(
+                LevelState.Failed,
+                _levelFlowDriver.CurrentState);
+        }
+
+        [Test]
+        public void TryFailLevel_InvokesLevelFailedOnce()
+        {
+            InitializeWithWagon();
+
+            int eventCount =
+                0;
+
+            _levelFlowDriver.LevelFailed +=
+                () =>
+                {
+                    eventCount++;
+                };
+
+            _levelFlowDriver.TryFailLevel();
+            _levelFlowDriver.TryFailLevel();
+
+            Assert.AreEqual(
+                1,
+                eventCount);
+        }
+
+        private void InitializeWithWagon()
+        {
+            _levelFlowDriver.Initialize(
+                new List<TrainWagon>
+                {
+                    _wagon
+                });
         }
     }
 }
