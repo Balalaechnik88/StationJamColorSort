@@ -25,6 +25,9 @@ namespace StationJam.Tests.EditMode
             _levelData.LevelNumber =
                 1;
 
+            _levelData.MovesLimit =
+                0;
+
             _levelData.InitialBufferColor =
                 ColorType.Red;
 
@@ -81,6 +84,22 @@ namespace StationJam.Tests.EditMode
 
             Assert.AreEqual(
                 "Ќомер уровн€ должен быть больше нул€.",
+                validationError);
+        }
+
+        [Test]
+        public void GetValidationError_WhenMovesLimitIsNegative_ReturnsError()
+        {
+            _levelData.MovesLimit =
+                -1;
+
+            string validationError =
+                _validator.GetValidationError(
+                    _levelData);
+
+            Assert.AreEqual(
+                "Ћимит ходов не может быть " +
+                "отрицательным.",
                 validationError);
         }
 
@@ -260,7 +279,40 @@ namespace StationJam.Tests.EditMode
         }
 
         [Test]
-        public void GetValidationError_WhenConfigurationIsValid_ReturnsEmptyString()
+        public void GetValidationError_WhenMovesLimitIsZero_ConfigurationIsValid()
+        {
+            _levelData.MovesLimit =
+                0;
+
+            AddValidWagon();
+
+            string validationError =
+                _validator.GetValidationError(
+                    _levelData);
+
+            Assert.AreEqual(
+                string.Empty,
+                validationError);
+        }
+
+        [Test]
+        public void GetValidationError_WhenMovesLimitIsPositive_ConfigurationIsValid()
+        {
+            _levelData.MovesLimit =
+                10;
+
+            AddValidWagon();
+
+            string validationError =
+                _validator.GetValidationError(
+                    _levelData);
+
+            Assert.AreEqual(
+                string.Empty,
+                validationError);
+        }
+
+        private void AddValidWagon()
         {
             _levelData.Wagons.Add(
                 new WagonSetup
@@ -277,14 +329,6 @@ namespace StationJam.Tests.EditMode
                             ColorType.Red
                         }
                 });
-
-            string validationError =
-                _validator.GetValidationError(
-                    _levelData);
-
-            Assert.AreEqual(
-                string.Empty,
-                validationError);
         }
     }
 }

@@ -13,14 +13,20 @@ namespace StationJam.Data
         [Header("Level Info")]
         public int LevelNumber;
 
+        [Header("Level Rules")]
+        [Tooltip(
+            "Максимальное количество ходов. " +
+            "0 означает, что лимит ходов отключён.")]
+        [Min(0)]
+        public int MovesLimit;
+
         [Header("Buffer Settings")]
         [Tooltip(
-            "Пассажир, который изначально стоит " +
-            "в транзитном слоте")]
+            "Пассажир, который изначально " +
+            "находится в транзитном слоте.")]
         public ColorType InitialBufferColor;
 
         [Header("Wagons Configuration")]
-        [Tooltip("Список вагонов на уровне")]
         public List<WagonSetup> Wagons =
             new List<WagonSetup>();
     }

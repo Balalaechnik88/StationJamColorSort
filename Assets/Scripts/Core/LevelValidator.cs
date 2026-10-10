@@ -22,6 +22,13 @@ namespace StationJam.Core
                     "Ќомер уровн€ должен быть больше нул€.";
             }
 
+            if (levelData.MovesLimit < 0)
+            {
+                return
+                    "Ћимит ходов не может быть " +
+                    "отрицательным.";
+            }
+
             if (!IsValidColor(
                     levelData.InitialBufferColor))
             {
