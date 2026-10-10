@@ -36,8 +36,8 @@ namespace StationJam.Core
         private readonly List<TrainWagon> _spawnedWagons =
             new List<TrainWagon>();
 
-        private readonly LevelValidator _levelValidator =
-            new LevelValidator();
+        private readonly LevelBuildPreflight _preflight =
+            new LevelBuildPreflight();
 
         public bool BuildLevel(
             LevelData levelData)
@@ -54,54 +54,18 @@ namespace StationJam.Core
                 return false;
             }
 
-            string levelValidationError =
-                _levelValidator.GetValidationError(
-                    levelData);
+            string preflightError =
+                _preflight.GetValidationError(
+                    levelData,
+                    _levelLayout,
+                    _passengerFactory,
+                    _wagonFactory);
 
             if (!string.IsNullOrEmpty(
-                    levelValidationError))
+                    preflightError))
             {
                 LogBuildError(
-                    levelValidationError);
-
-                return false;
-            }
-
-            string layoutValidationError =
-                _levelLayout.GetConfigurationError(
-                    levelData.Wagons.Count);
-
-            if (!string.IsNullOrEmpty(
-                    layoutValidationError))
-            {
-                LogBuildError(
-                    layoutValidationError);
-
-                return false;
-            }
-
-            string passengerFactoryValidationError =
-                GetPassengerFactoryValidationError(
-                    levelData);
-
-            if (!string.IsNullOrEmpty(
-                    passengerFactoryValidationError))
-            {
-                LogBuildError(
-                    passengerFactoryValidationError);
-
-                return false;
-            }
-
-            string wagonFactoryValidationError =
-                GetWagonFactoryValidationError(
-                    levelData);
-
-            if (!string.IsNullOrEmpty(
-                    wagonFactoryValidationError))
-            {
-                LogBuildError(
-                    wagonFactoryValidationError);
+                    preflightError);
 
                 return false;
             }
@@ -365,77 +329,6 @@ namespace StationJam.Core
             }
         }
 
-        private string GetPassengerFactoryValidationError(
-            LevelData levelData)
-        {
-            string bufferColorError =
-                _passengerFactory
-                    .GetColorConfigurationError(
-                        levelData.InitialBufferColor);
-
-            if (!string.IsNullOrEmpty(
-                    bufferColorError))
-            {
-                return
-                    bufferColorError;
-            }
-
-            foreach (WagonSetup setup
-                     in levelData.Wagons)
-            {
-                foreach (ColorType passengerColor
-                         in setup.StartingPassengers)
-                {
-                    string colorError =
-                        _passengerFactory
-                            .GetColorConfigurationError(
-                                passengerColor);
-
-                    if (!string.IsNullOrEmpty(
-                            colorError))
-                    {
-                        return
-                            colorError;
-                    }
-                }
-            }
-
-            return
-                string.Empty;
-        }
-
-        private string GetWagonFactoryValidationError(
-            LevelData levelData)
-        {
-            for (int wagonIndex = 0;
-                 wagonIndex < levelData.Wagons.Count;
-                 wagonIndex++)
-            {
-                WagonSetup setup =
-                    levelData.Wagons[
-                        wagonIndex];
-
-                string wagonError =
-                    _wagonFactory
-                        .GetWagonConfigurationError(
-                            setup.TargetColor,
-                            setup.Capacity);
-
-                if (string.IsNullOrEmpty(
-                        wagonError))
-                {
-                    continue;
-                }
-
-                return
-                    $"Вагон {wagonIndex}: " +
-                    $"{wagonError}";
-            }
-
-            return
-                string.Empty;
-        }
-
         private void ClearBuiltLevel()
         {
             _levelFlowDriver.ResetLevel();
@@ -525,46 +418,6 @@ namespace StationJam.Core
             {
                 return
                     "LevelFlowDriver не назначен.";
-            }
-
-            if (_levelLayout == null)
-            {
-                return
-                    "LevelLayout не назначен.";
-            }
-
-            if (_passengerFactory == null)
-            {
-                return
-                    "PassengerFactory не назначен.";
-            }
-
-            if (_wagonFactory == null)
-            {
-                return
-                    "WagonFactory не назначен.";
-            }
-
-            string passengerFactoryError =
-                _passengerFactory
-                    .GetConfigurationError();
-
-            if (!string.IsNullOrEmpty(
-                    passengerFactoryError))
-            {
-                return
-                    passengerFactoryError;
-            }
-
-            string wagonFactoryError =
-                _wagonFactory
-                    .GetConfigurationError();
-
-            if (!string.IsNullOrEmpty(
-                    wagonFactoryError))
-            {
-                return
-                    wagonFactoryError;
             }
 
             return
