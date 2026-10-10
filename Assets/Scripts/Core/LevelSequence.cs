@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using StationJam.Data;
 
@@ -7,42 +6,62 @@ namespace StationJam.Core
 {
     public class LevelSequence : MonoBehaviour
     {
+        public event Action<int> LevelStarted;
+
         [Header("References")]
         [SerializeField]
         private LevelBuilder _levelBuilder;
 
-        [Header("Levels")]
+        [Header("Level Catalog")]
         [SerializeField]
-        private List<LevelData> _levels =
-            new List<LevelData>();
+        private LevelCatalog _levelCatalog;
 
         [SerializeField]
         [Min(0)]
         private int _startLevelIndex;
 
-        private int _currentLevelIndex = -1;
+        private readonly LevelCatalogValidator _catalogValidator =
+            new LevelCatalogValidator();
 
-        public event Action<int, LevelData> LevelStarted;
+        private int _currentLevelIndex =
+            -1;
 
         public int CurrentLevelIndex =>
             _currentLevelIndex;
 
         public bool HasNextLevel =>
+            _levelCatalog != null &&
             _currentLevelIndex >= 0 &&
-            _currentLevelIndex + 1 < _levels.Count;
+            _levelCatalog.HasLevel(
+                _currentLevelIndex + 1);
 
         private void Start()
         {
-            LoadLevel(_startLevelIndex);
+            string configurationError =
+                GetConfigurationError();
+
+            if (!string.IsNullOrEmpty(
+                    configurationError))
+            {
+                Debug.LogError(
+                    $"[LevelSequence] Последовательность " +
+                    $"уровней не запущена: " +
+                    $"{configurationError}");
+
+                return;
+            }
+
+            LoadLevel(
+                _startLevelIndex);
         }
 
         public void LoadNextLevel()
         {
             if (!HasNextLevel)
             {
-                Debug.Log(
-                    "[LevelSequence] Все доступные " +
-                    "уровни пройдены.");
+                Debug.LogWarning(
+                    "[LevelSequence] Следующий уровень " +
+                    "недоступен.");
 
                 return;
             }
@@ -56,8 +75,9 @@ namespace StationJam.Core
             if (_currentLevelIndex < 0)
             {
                 Debug.LogWarning(
-                    "[LevelSequence] Текущий уровень " +
-                    "ещё не запущен.");
+                    "[LevelSequence] Нельзя перезапустить " +
+                    "уровень: текущий уровень ещё " +
+                    "не был запущен.");
 
                 return;
             }
@@ -69,43 +89,34 @@ namespace StationJam.Core
         private void LoadLevel(
             int levelIndex)
         {
-            if (_levelBuilder == null)
+            if (_levelCatalog == null)
             {
                 Debug.LogError(
-                    "[LevelSequence] LevelBuilder " +
+                    "[LevelSequence] LevelCatalog " +
                     "не назначен.");
 
                 return;
             }
 
-            if (_levels == null ||
-                _levels.Count == 0)
+            if (!_levelCatalog.HasLevel(
+                    levelIndex))
             {
                 Debug.LogError(
-                    "[LevelSequence] Список уровней пуст.");
-
-                return;
-            }
-
-            if (levelIndex < 0 ||
-                levelIndex >= _levels.Count)
-            {
-                Debug.LogError(
-                    $"[LevelSequence] Индекс уровня " +
-                    $"{levelIndex} находится за пределами " +
-                    "списка.");
+                    $"[LevelSequence] Уровень с индексом " +
+                    $"{levelIndex} отсутствует в каталоге.");
 
                 return;
             }
 
             LevelData levelData =
-                _levels[levelIndex];
+                _levelCatalog.GetLevel(
+                    levelIndex);
 
             if (levelData == null)
             {
                 Debug.LogError(
                     $"[LevelSequence] LevelData с индексом " +
-                    $"{levelIndex} не назначен.");
+                    $"{levelIndex} отсутствует.");
 
                 return;
             }
@@ -116,25 +127,63 @@ namespace StationJam.Core
 
             if (!levelBuilt)
             {
+                Debug.LogError(
+                    $"[LevelSequence] Не удалось запустить " +
+                    $"уровень {levelData.LevelNumber}.");
+
                 return;
             }
 
             _currentLevelIndex =
                 levelIndex;
 
-            int displayedLevelIndex =
-                _currentLevelIndex + 1;
+            LevelStarted?.Invoke(
+                levelData.LevelNumber);
 
             Debug.Log(
                 $"[LevelSequence] Запущен уровень " +
                 $"{levelData.LevelNumber}. " +
-                $"Позиция в списке: " +
-                $"{displayedLevelIndex}/" +
-                $"{_levels.Count}.");
+                $"Позиция в каталоге: " +
+                $"{_currentLevelIndex + 1}/" +
+                $"{_levelCatalog.Count}.");
+        }
 
-            LevelStarted?.Invoke(
-                _currentLevelIndex,
-                levelData);
+        private string GetConfigurationError()
+        {
+            if (_levelBuilder == null)
+            {
+                return
+                    "LevelBuilder не назначен.";
+            }
+
+            if (_levelCatalog == null)
+            {
+                return
+                    "LevelCatalog не назначен.";
+            }
+
+            string catalogValidationError =
+                _catalogValidator.GetValidationError(
+                    _levelCatalog);
+
+            if (!string.IsNullOrEmpty(
+                    catalogValidationError))
+            {
+                return
+                    catalogValidationError;
+            }
+
+            if (!_levelCatalog.HasLevel(
+                    _startLevelIndex))
+            {
+                return
+                    $"Стартовый индекс " +
+                    $"{_startLevelIndex} отсутствует " +
+                    "в LevelCatalog.";
+            }
+
+            return
+                string.Empty;
         }
     }
 }
