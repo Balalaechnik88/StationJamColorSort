@@ -251,6 +251,120 @@ namespace StationJam.Tests.EditMode
                 _bufferPassenger.transform.position);
         }
 
+        [Test]
+        public void ProcessSwap_WhenTweenCompletes_InvokesMoveCommittedOnce()
+        {
+            int committedMoves =
+                0;
+
+            _swapEngine.MoveCommitted +=
+                () =>
+                {
+                    committedMoves++;
+                };
+
+            _swapEngine.ProcessSwap(
+                _trainPassenger);
+
+            Assert.AreEqual(
+                0,
+                committedMoves);
+
+            DOTween.CompleteAll(true);
+
+            Assert.AreEqual(
+                1,
+                committedMoves);
+        }
+
+        [Test]
+        public void ProcessSwap_WithEmptyBuffer_InvokesMoveCommittedOnce()
+        {
+            int committedMoves =
+                0;
+
+            _swapEngine.MoveCommitted +=
+                () =>
+                {
+                    committedMoves++;
+                };
+
+            _swapEngine.InitializeBuffer(
+                null);
+
+            _swapEngine.ProcessSwap(
+                _trainPassenger);
+
+            Assert.AreEqual(
+                0,
+                committedMoves);
+
+            DOTween.CompleteAll(true);
+
+            Assert.AreEqual(
+                1,
+                committedMoves);
+        }
+
+        [Test]
+        public void ProcessSwap_WhenTweenIsCancelled_DoesNotInvokeMoveCommitted()
+        {
+            int committedMoves =
+                0;
+
+            _swapEngine.MoveCommitted +=
+                () =>
+                {
+                    committedMoves++;
+                };
+
+            _swapEngine.ProcessSwap(
+                _trainPassenger);
+
+            Assert.AreEqual(
+                0,
+                committedMoves);
+
+            DOTween.KillAll();
+
+            Assert.AreEqual(
+                0,
+                committedMoves);
+
+            Assert.AreEqual(
+                LevelState.Playing,
+                _levelFlowDriver.CurrentState);
+        }
+
+        [Test]
+        public void ProcessSwap_WhenWagonIsDeparting_DoesNotInvokeMoveCommitted()
+        {
+            int committedMoves =
+                0;
+
+            _swapEngine.MoveCommitted +=
+                () =>
+                {
+                    committedMoves++;
+                };
+
+            SetWagonState(
+                WagonState.Departing);
+
+            _swapEngine.ProcessSwap(
+                _trainPassenger);
+
+            DOTween.CompleteAll(true);
+
+            Assert.AreEqual(
+                0,
+                committedMoves);
+
+            Assert.AreEqual(
+                LevelState.Playing,
+                _levelFlowDriver.CurrentState);
+        }
+
         private void CreateTransitSlot()
         {
             _transitSlotGameObject =

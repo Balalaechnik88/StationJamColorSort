@@ -1,3 +1,4 @@
+using System;
 using DG.Tweening;
 using UnityEngine;
 using StationJam.Entities;
@@ -7,6 +8,8 @@ namespace StationJam.Core
     public class SwapEngine : MonoBehaviour
     {
         private const int JumpCount = 1;
+
+        public event Action MoveCommitted;
 
         [Header("Scene References")]
         [SerializeField]
@@ -175,7 +178,8 @@ namespace StationJam.Core
                         trainPassenger,
                         startPosition);
 
-                    operationResolved = true;
+                    operationResolved =
+                        true;
 
                     _levelFlowDriver.FinishSwap();
 
@@ -193,9 +197,12 @@ namespace StationJam.Core
 
                 trainPassenger.PlayIdle();
 
-                operationResolved = true;
+                operationResolved =
+                    true;
 
                 _levelFlowDriver.FinishSwap();
+
+                PublishCommittedMove();
             });
 
             moveTween.OnKill(() =>
@@ -211,7 +218,8 @@ namespace StationJam.Core
 
                 if (_activeTween == moveTween)
                 {
-                    _activeTween = null;
+                    _activeTween =
+                        null;
                 }
             });
         }
@@ -296,7 +304,8 @@ namespace StationJam.Core
                         bufferPassenger,
                         bufferStartPosition);
 
-                    operationResolved = true;
+                    operationResolved =
+                        true;
 
                     _levelFlowDriver.FinishSwap();
 
@@ -321,11 +330,14 @@ namespace StationJam.Core
                 trainPassenger.PlayIdle();
                 bufferPassenger.PlayIdle();
 
-                operationResolved = true;
+                operationResolved =
+                    true;
 
                 _levelFlowDriver.FinishSwap();
 
                 targetWagon.CheckCompletion();
+
+                PublishCommittedMove();
             });
 
             swapSequence.OnKill(() =>
@@ -345,7 +357,8 @@ namespace StationJam.Core
 
                 if (_activeTween == swapSequence)
                 {
-                    _activeTween = null;
+                    _activeTween =
+                        null;
                 }
             });
         }
@@ -364,6 +377,11 @@ namespace StationJam.Core
 
             _activeTween =
                 null;
+        }
+
+        private void PublishCommittedMove()
+        {
+            MoveCommitted?.Invoke();
         }
 
         private void RestorePassenger(

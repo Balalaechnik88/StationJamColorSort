@@ -22,6 +22,9 @@ namespace StationJam.Core
         [SerializeField]
         private LevelLayout _levelLayout;
 
+        [SerializeField]
+        private MoveBudget _moveBudget;
+
         [Header("Factories")]
         [SerializeField]
         private PassengerFactory _passengerFactory;
@@ -70,6 +73,8 @@ namespace StationJam.Core
                 _levelFlowDriver,
                 _swapEngine);
 
+            _moveBudget.ResetBudget();
+
             bool buildCompleted =
                 false;
 
@@ -99,6 +104,9 @@ namespace StationJam.Core
 
                     return false;
                 }
+
+                _moveBudget.Initialize(
+                    levelData.MovesLimit);
 
                 _swapEngine.InitializeBuffer(
                     spawnResult.BufferPassenger);
@@ -161,6 +169,8 @@ namespace StationJam.Core
                 _levelFlowDriver,
                 _swapEngine);
 
+            _moveBudget.ResetBudget();
+
             Debug.LogWarning(
                 "[LevelBuilder] Частично построенный " +
                 "уровень полностью очищен.");
@@ -184,6 +194,12 @@ namespace StationJam.Core
             {
                 return
                     "LevelFlowDriver не назначен.";
+            }
+
+            if (_moveBudget == null)
+            {
+                return
+                    "MoveBudget не назначен.";
             }
 
             return
