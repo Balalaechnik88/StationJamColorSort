@@ -28,6 +28,37 @@ namespace StationJam.Core
         public bool CanAcceptInput =>
             _currentState == LevelState.Playing;
 
+        public bool IsCompletionPending
+        {
+            get
+            {
+                if (!_isInitialized ||
+                    _currentState == LevelState.Completed ||
+                    _currentState == LevelState.Failed ||
+                    _wagonsInLevel.Count == 0)
+                {
+                    return false;
+                }
+
+                foreach (TrainWagon wagon
+                         in _wagonsInLevel)
+                {
+                    if (wagon == null)
+                    {
+                        return false;
+                    }
+
+                    if (wagon.CurrentState ==
+                        WagonState.Active)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
         public void Initialize(
             IReadOnlyList<TrainWagon> wagons)
         {

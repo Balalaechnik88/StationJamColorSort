@@ -1367,6 +1367,7 @@ GameObject:
   - component: {fileID: 1454318369}
   - component: {fileID: 1454318370}
   - component: {fileID: 1454318371}
+  - component: {fileID: 1454318372}
   m_Layer: 0
   m_Name: GameCore
   m_TagString: Untagged
@@ -1512,6 +1513,20 @@ MonoBehaviour:
   _swapEngine: {fileID: 1454318364}
   _hasLimit: 0
   _remainingMoves: 0
+--- !u!114 &1454318372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1454318363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c08c007b9884894590545a14c7ed5ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _moveBudget: {fileID: 1454318371}
+  _levelFlowDriver: {fileID: 1454318366}
 --- !u!1 &1467545984
 GameObject:
   m_ObjectHideFlags: 0
