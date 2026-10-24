@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Level_04
   m_EditorClassIdentifier: 
   LevelNumber: 4
+  MovesLimit: 15
   InitialBufferColor: 3
   Wagons:
   - TargetColor: 0
